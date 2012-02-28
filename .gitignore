@@ -1,6 +1,7 @@
 obj
 bin
 srcs
+ipch
 *~
 *.o
 *.obj
@@ -10,3 +11,12 @@ srcs
 *.exe
 *.pdb
 *.sdb
+*.suo
+*.sdf
+*.opensdf
+*.idb
+Debug
+Release
+x86
+x64
+Win32
