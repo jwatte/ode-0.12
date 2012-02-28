@@ -1,0 +1,14 @@
+obj
+bin
+srcs
+*~
+*.o
+*.obj
+*.ilk
+*.lib
+*.dll
+*.exe
+*.pdb
+*.sdb
+*.vcproj
+*.sln
