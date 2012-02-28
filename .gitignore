@@ -10,5 +10,3 @@ srcs
 *.exe
 *.pdb
 *.sdb
-*.vcproj
-*.sln
