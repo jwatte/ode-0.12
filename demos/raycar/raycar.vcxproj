@@ -64,9 +64,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\..\glut-3.7.6-bin;$(ProjectDir)\..\glew-1.7.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\..\glut-3.7.6-bin;$(ProjectDir)\..\glew-1.7.0\lib;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProjectDir)\..\glut-3.7.6-bin;$(ProjectDir)\..\glew-1.7.0\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(ProjectDir)\..\glew-1.7.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\..\glew-1.7.0\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ProjectDir)\..\glew-1.7.0\bin;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -76,9 +76,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)\..\glut-3.7.6-bin;$(ProjectDir)\..\glew-1.7.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\..\glut-3.7.6-bin;$(ProjectDir)\..\glew-1.7.0\lib;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProjectDir)\..\glut-3.7.6-bin;$(ProjectDir)\..\glew-1.7.0\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(ProjectDir)\..\glew-1.7.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\..\glew-1.7.0\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ProjectDir)\..\glew-1.7.0\bin;$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -94,7 +94,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
@@ -102,11 +102,21 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)\..\glut-3.7.6-bin\glut32.dll $(OutDir)\glut32.dll</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
+    <CustomBuildStep>
+      <Command>copy /y $(ProjectDir)\..\glew-1.7.0\bin\glew32.dll $(OutDir)\glew32.dll</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>Copy GLEW</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)\glew32.dll</Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -139,6 +149,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,11 +157,21 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)\..\glut-3.7.6-bin\glut32.dll $(OutDir)\glut32.dll</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
+    <CustomBuildStep>
+      <Command>copy /y $(ProjectDir)\..\glew-1.7.0\bin\glew32.dll $(OutDir)\glew32.dll</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>Copy GLEW</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)\glew32.dll</Outputs>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -175,7 +196,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="input.cpp" />
     <ClCompile Include="raycar.cpp" />
+    <ClCompile Include="scene.cpp" />
+    <ClCompile Include="window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="rc_input.h" />
+    <ClInclude Include="rc_scene.h" />
+    <ClInclude Include="rc_window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

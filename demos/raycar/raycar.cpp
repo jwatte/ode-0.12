@@ -5,26 +5,100 @@
 #define GLUT_DISABLE_ATEXIT_HACK 1
 #define WINDOWS_MAIN 1
 #define UNIX_MAIN 0
+HINSTANCE hInstance;
 #else
 #define WINDOWS_MAIN 0
 #define UNIX_MAIN 1
 #endif
 
 #include <GL/glew.h>
-#include <glut.h>
 #include <vector>
 #include <algorithm>
+#include <string>
+
+
+#include "rc_window.h"
+#include "rc_scene.h"
+
+
+int width = 1024;
+int height = 576;
+double maxStepTime = 0.025;
+double stepTime = 1.0 / 120.0;
+
+
+
+char const *requireArg(char const *argv[], int &argc)
+{
+    if (argv[argc+1] == 0)
+    {
+        error(std::string("Option requires an argument: ") + argv[argc]);
+    }
+    ++argc;
+    return argv[argc];
+}
+
+void parseArgs(int argc, char const *argv[])
+{
+    for (int i = 1; i < argc; ++i)
+    {
+        if (argv[i][0] == '-')
+        {
+            if (!strcmp(argv[i], "--size"))
+            {
+                sscanf_s(requireArg(argv, i), " %d x %d", &width, &height);
+            }
+            else
+            {
+                goto unknown;
+            }
+        }
+        else
+        {
+        unknown:
+            error(std::string("Unknown argument: ") + argv[i]);
+        }
+    }
+}
+
+
+void mainLoop()
+{
+    while (running)
+    {
+        setupWindow(width, height, "raycar");
+        loadScene("raycar.scn");
+        resetTimer();
+        double now = 0;
+        while (sceneRunning && running)
+        {
+            double next = timer();
+            if (next > now + maxStepTime)
+            {
+                now = next - maxStepTime;
+            }
+            while (now < next)
+            {
+                stepScene();
+                now += stepTime;
+            }
+            renderWindow();
+        }
+    }
+}
 
 
 #if WINDOWS_MAIN
 
 int CALLBACK WinMain(
-  __in  HINSTANCE hInstance,
+  __in  HINSTANCE hInstanceArg,
   __in  HINSTANCE hPrevInstance,
   __in  LPSTR lpCmdLine,
   __in  int nCmdShow
 )
 {
+    ::SetErrorMode(0);
+    hInstance = hInstanceArg;
     //  translate lpCmdLine to argv-style array, allowing for 
     //  double-quotes to quote arguments with spaces
     std::vector<std::string> argvstore;
@@ -63,7 +137,7 @@ int CALLBACK WinMain(
         argvstore.push_back(curOut);
         curOut = "";
     }
-    std::vector<char *> argv;
+    std::vector<char const *> argv;
     for (std::vector<std::string>::iterator ptr(argvstore.begin()), end(argvstore.end());
         ptr != end; ++ptr)
     {
@@ -73,19 +147,25 @@ int CALLBACK WinMain(
 
     //  init GLUT
     int argc = argv.size() - 1;
-    char **argvp = &argv[0];
-    glutInitWindowSize(1024, 576);
-    glutInit(&argc, argvp);
+    char const **argvp = &argv[0];
 
-    //  init GLEW
+    parseArgs(argc, argvp);
 
-    //  run
-    glutMainLoop();
+    mainLoop();
 
     return 0;
 }
 #endif
 
 #if UNIX_MAIN
+
+int main(int argc, char const *argv[])
+{
+    parseArgs(argc, argv);
+
+    mainLoop();
+
+    return 0;
+}
 
 #endif
