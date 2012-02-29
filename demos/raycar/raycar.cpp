@@ -19,12 +19,30 @@ HINSTANCE hInstance;
 
 #include "rc_window.h"
 #include "rc_scene.h"
+#include "rc_model.h"
+#include "rc_ixfile.h"
+
+
+bool quitAfterArgs = false;
 
 
 int width = 1024;
 int height = 576;
 double maxStepTime = 0.025;
 double stepTime = 1.0 / 120.0;
+
+
+void obj_to_bin(char const *from, char const *to)
+{
+    IxRead *rd = IxRead::readFromFile(from);
+    IxWrite *wr = IxWrite::writeToFile(to);
+    ModelWriter *mw = ModelWriter::writeToFile(wr);
+
+    read_obj(rd, mw);
+
+    delete mw;
+    delete rd;
+}
 
 
 
@@ -48,6 +66,18 @@ void parseArgs(int argc, char const *argv[])
             {
                 sscanf_s(requireArg(argv, i), " %d x %d", &width, &height);
             }
+            else if (!strcmp(argv[i], "--objtobin"))
+            {
+                char const *aObj = requireArg(argv, i);
+                char const *aBin = requireArg(argv, i);
+                fprintf(stderr, "Converting obj %s to bin %s\n", aObj, aBin);
+                obj_to_bin(aObj, aBin);
+                quitAfterArgs = true;
+            }
+            else if (!strcmp(argv[i], "--quit"))
+            {
+                quitAfterArgs = true;
+            }
             else
             {
                 goto unknown;
@@ -56,34 +86,46 @@ void parseArgs(int argc, char const *argv[])
         else
         {
         unknown:
-            error(std::string("Unknown argument: ") + argv[i]);
+            throw std::runtime_error(std::string("Unknown argument: ") + argv[i]);
         }
+    }
+    if (quitAfterArgs)
+    {
+        fprintf(stderr, "Done.\n");
+        exit(0);
     }
 }
 
 
 void mainLoop()
 {
-    while (running)
+    try
     {
-        setupWindow(width, height, "raycar");
-        loadScene("raycar.scn");
-        resetTimer();
-        double now = 0;
-        while (sceneRunning && running)
+        while (running)
         {
-            double next = timer();
-            if (next > now + maxStepTime)
+            setupWindow(width, height, "raycar");
+            loadScene("raycar.scn");
+            resetTimer();
+            double now = 0;
+            while (sceneRunning && running)
             {
-                now = next - maxStepTime;
+                double next = timer();
+                if (next > now + maxStepTime)
+                {
+                    now = next - maxStepTime;
+                }
+                while (now < next)
+                {
+                    stepScene();
+                    now += stepTime;
+                }
+                renderWindow();
             }
-            while (now < next)
-            {
-                stepScene();
-                now += stepTime;
-            }
-            renderWindow();
         }
+    }
+    catch (std::exception const &x)
+    {
+        error(x.what());
     }
 }
 

@@ -196,13 +196,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="context.cpp" />
     <ClCompile Include="input.cpp" />
+    <ClCompile Include="ixfile.cpp" />
+    <ClCompile Include="model.cpp" />
     <ClCompile Include="raycar.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="rc_context.h" />
     <ClInclude Include="rc_input.h" />
+    <ClInclude Include="rc_ixfile.h" />
+    <ClInclude Include="rc_model.h" />
     <ClInclude Include="rc_scene.h" />
     <ClInclude Include="rc_window.h" />
   </ItemGroup>

@@ -231,6 +231,10 @@ void WCreateHwnd(int width, int height, char const *title)
     {
         error("Graphics driver problem: cannot initialize GLEW.");
     }
+    if (!GLEW_ARB_shader_objects || !GLEW_VERSION_2_0)
+    {
+        error("OpenGL driver does not support OpenGL 2.0 with shaders.");
+    }
 }
 
 #endif
