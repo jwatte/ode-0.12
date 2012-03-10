@@ -3,10 +3,13 @@
 #include <stdio.h>
 #include <string>
 #include <ctype.h>
+#include <sstream>
+#include <algorithm>
 
 #include "rc_model.h"
 #include "rc_context.h"
 #include "rc_ixfile.h"
+#include "rc_vertexmerge.h"
 
 
 enum BinMagic
@@ -20,6 +23,13 @@ enum BinMagic
     bm_magicBones
 };
 
+
+VertexLayout VertPtn::layout_[3] =
+{
+    { vc_position, 0, 3, GL_FLOAT },
+    { vc_texture0, 12, 2, GL_FLOAT },
+    { vc_normal, 20, 3, GL_FLOAT },
+};
 
 void readBuffer(IxRead *file, std::vector<char> &buffer)
 {
@@ -62,13 +72,84 @@ char const *end_of_line(char const *pos, char const *end)
     return pos;
 }
 
+struct GroupMtl
+{
+    GroupMtl() : offset(0) {}
+    std::string groupname;
+    std::string mtlname;
+    size_t offset;
+};
+
+struct Mtl
+{
+    Mtl() :
+        name(""),
+        Ns(20),
+        Ni(1.5f),
+        d(1.0f),
+        Tr(0.0f),
+        Tf(1.0f, 1.0f, 1.0f),
+        illum(2),
+        Ka(0.5f, 0.5f, 0.5f),
+        Kd(0.5f, 0.5f, 0.5f),
+        Ks(0.5f, 0.5f, 0.5f),
+        Ke(0, 0, 0),
+        map_Ka(""),
+        map_Kd(""),
+        map_Ks(""),
+        map_Ke("")
+    {
+    }
+    std::string name;
+    float Ns;
+    float Ni;
+    float d;
+    float Tr;
+    Vec3 Tf;
+    int illum;
+    Vec3 Ka;
+    Vec3 Kd;
+    Vec3 Ks;
+    Vec3 Ke;
+    std::string map_Ka;
+    std::string map_Kd;
+    std::string map_Ks;
+    std::string map_Ke;
+};
+
 class Obj
 {
 public:
+    Obj(std::string const &dir) :
+        dir_(dir),
+        groupMtlDirty(true)
+    {
+        //  index 0 is unused in obj, so pre-populate 
+        //  that with a default value
+        pos.push_back(0);
+        pos.push_back(0);
+        pos.push_back(0);
+
+        norm.push_back(1);
+        norm.push_back(0);
+        norm.push_back(0);
+
+        uv.push_back(0);
+        uv.push_back(0);
+
+        curGroupMtl.groupname = "default";
+        curGroupMtl.mtlname = "default";
+    }
     std::vector<float> pos;
     std::vector<float> norm;
     std::vector<float> uv;
     std::vector<int> faces;
+    std::string dir_;
+    std::vector<GroupMtl> groupmtls;
+    GroupMtl curGroupMtl;
+    bool groupMtlDirty;
+    Mtl curMtl;
+    std::vector<Mtl> mtls;
 };
 
 bool get_line_float(char const *&line, float &fv)
@@ -94,10 +175,210 @@ bool get_line_indices(char const *&line, int &a, int &b, int &c)
     {
         ++line;
     }
-    ..
+    if (!*line)
+    {
+        return false;
+    }
+    char const *start = line;
+    while (*line && *line != '/' && *line != ' ')
+    {
+        ++line;
+    }
+    if (line - start > 10 || line == start)
+    {
+        throw std::runtime_error("Invalid vertex index in obj file");
+    }
+    char *x;
+    a = (int)strtol(start, &x, 10);
+    if (a == 0 || x != line)
+    {
+        throw std::runtime_error("Bad vertex index format in obj file");
+    }
+    if (*line == ' ' || !*line)
+    {
+        return true;
+    }
+    ++line;
+    start = line;
+    while (*line && *line != '/' && *line != ' ')
+    {
+        ++line;
+    }
+    if (line - start > 10)
+    {
+        throw std::runtime_error("Invalid vertex texture in obj file");
+    }
+    if (line > start)
+    {
+        char *x = 0;
+        b = (int)strtol(start, &x, 10);
+        if (b == 0 || x != line)
+        {
+            throw std::runtime_error("Bad texture index format in obj file");
+        }
+    }
+    if (*line == ' ' || !*line)
+    {
+        return true;
+    }
+    ++line;
+    start = line;
+    while (*line && *line != '/' && *line != ' ')
+    {
+        ++line;
+    }
+    if (line - start > 10)
+    {
+        throw std::runtime_error("Invalid vertex normal in obj file");
+    }
+    if (line > start)
+    {
+        char *x = 0;
+        c = (int)strtol(start, &x, 10);
+        if (c == 0 || x != line)
+        {
+            throw std::runtime_error("Bad normal index format in obj file");
+        }
+    }
+    if (*line == ' ' || !*line)
+    {
+        return true;
+    }
+    throw std::runtime_error("Unexpected data after normal index in obj file");
+    return false;
 }
 
-void parse_obj_line(char const *data, char const *eol, Obj &obj)
+void convert(std::string const &str, float &f)
+{
+    if (1 != sscanf_s(str.c_str(), " %f", &f))
+    {
+        throw std::runtime_error(std::string("Bad format for obj material float value ") + str);
+    }
+}
+
+void convert(std::string const &str, int &i)
+{
+    if (1 != sscanf_s(str.c_str(), " %d", &i))
+    {
+        throw std::runtime_error(std::string("Bad format for obj material int value ") + str);
+    }
+}
+
+void convert(std::string const &str, Vec3 &c)
+{
+    if (3 != sscanf_s(str.c_str(), " %f %f %f", &c.x, &c.y, &c.z))
+    {
+        throw std::runtime_error(std::string("Bad format for obj material Vec3 value ") + str);
+    }
+}
+
+void convert(std::string const &str, std::string &s)
+{
+    s = str;
+#if defined(_WINDOWS)
+    std::replace(s.begin(), s.end(), '\\', '/');
+#endif
+    size_t pos = s.find_last_of('/');
+    if (pos != std::string::npos)
+    {
+        s = s.substr(pos+1);
+    }
+}
+
+template<typename T>
+void test_mtl(std::string const &line, std::string const &key, T &val)
+{
+    std::string test(line.substr(0, key.size()));
+    if (test == key)
+    {
+        size_t size = line.size();
+        size_t pos = key.size();
+        while (pos < size && isspace(line[pos]))
+        {
+            ++pos;
+        }
+        convert(line.substr(pos), val);
+    }
+}
+
+void read_mtllib_line(Obj &obj, std::string const &line)
+{
+    if (line.substr(0, 7) == "newmtl ")
+    {
+        if (obj.curMtl.name.size())
+        {
+            obj.mtls.push_back(obj.curMtl);
+        }
+        obj.curMtl = Mtl();
+        obj.curMtl.name = line.substr(7);
+    }
+    else
+    {
+    /*
+newmtl 01___Default
+	Ns 33.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.5940 0.5940 0.5940
+	Ke 0.0000 0.0000 0.0000
+	map_Ka C:\code\ode-0.12\demos\raycar\art\ChassisCompleteMap.tga
+	map_Kd C:\code\ode-0.12\demos\raycar\art\raycar.tga
+    */
+        test_mtl(line, "Ns", obj.curMtl.Ns);
+        test_mtl(line, "Ni", obj.curMtl.Ni);
+        test_mtl(line, "d", obj.curMtl.d);
+        test_mtl(line, "Tr", obj.curMtl.Tr);
+        test_mtl(line, "Tf", obj.curMtl.Tf);
+        test_mtl(line, "illum", obj.curMtl.illum);
+        test_mtl(line, "Ka", obj.curMtl.Ka);
+        test_mtl(line, "Kd", obj.curMtl.Kd);
+        test_mtl(line, "Ks", obj.curMtl.Ks);
+        test_mtl(line, "Ke", obj.curMtl.Ke);
+        test_mtl(line, "map_Ka", obj.curMtl.map_Ka);
+        test_mtl(line, "map_Kd", obj.curMtl.map_Kd);
+        test_mtl(line, "map_Ks", obj.curMtl.map_Ks);
+        test_mtl(line, "map_Ke", obj.curMtl.map_Ke);
+    }
+}
+
+void read_mtllib(std::string const &name, Obj &obj)
+{
+    IxRead *r = IxRead::readFromFile((obj.dir_ + "/" + name).c_str());
+    size_t size = r->size();
+    char const *ptr = (char const *)r->dataSegment(0, size);
+    char const *fileEnd = ptr + size;
+    while (ptr < fileEnd)
+    {
+        while (ptr < fileEnd && isspace(*ptr))
+        {
+            ++ptr;
+        }
+        if (ptr == fileEnd)
+        {
+            break;
+        }
+        char const *end = ptr;
+        while (end < fileEnd && *end != '\n')
+        {
+            ++end;
+        }
+        std::string line(ptr, end);
+        ptr = end + 1;
+        read_mtllib_line(obj, line);
+    }
+    if (obj.curMtl.name.size())
+    {
+        obj.mtls.push_back(obj.curMtl);
+    }
+    delete r;
+}
+
+void parse_obj_line(char const *data, char const *eol, Obj &obj, float scale)
 {
     while (data < eol && isspace(*data))
     {
@@ -108,11 +389,17 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj)
     {
         ++end;
     }
-    std::string line(data, end);
-    if (line.size() < 3)
+    if (data == eol || *data == '\r' || *data == '\n')
     {
-        throw std::runtime_error("Bad line in obj file");
+        //  nothing to do
+        return;
     }
+    if (end - data < 3)
+    {
+        //  not a line I care about
+        return;
+    }
+    std::string line(data, end);
     if (line[0] == 'f')
     {
         size_t pos = 1;
@@ -125,6 +412,12 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj)
         {
             ++pos;
         }
+        if (obj.groupMtlDirty)
+        {
+            obj.groupMtlDirty = false;
+            obj.curGroupMtl.offset = obj.faces.size();
+            obj.groupmtls.push_back(obj.curGroupMtl);
+        }
         char const *strptr = line.c_str() + pos;
         int nRefs = 0;
         int a, b, c;
@@ -132,6 +425,31 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj)
         //  turn multi-triangle faces into fans
         while (get_line_indices(strptr, a, b, c))
         {
+            //  translate negative indices, and zero indices
+            if (a < 0)
+            {
+                a = obj.pos.size() + a;
+            }
+            if (b < 0)
+            {
+                b = obj.uv.size() + b;
+            }
+            if (c < 0)
+            {
+                c = obj.norm.size() + c;
+            }
+            if ((uint32_t)a * 3 > obj.pos.size())
+            {
+                throw std::runtime_error("Position index out of range in obj file.");
+            }
+            if ((uint32_t)b * 2 > obj.uv.size())
+            {
+                throw std::runtime_error("Texture index out of range in obj file.");
+            }
+            if ((uint32_t)c * 3 > obj.norm.size())
+            {
+                throw std::runtime_error("Normal index out of range in obj file.");
+            }
             if (nRefs >= 2)
             {
                 obj.faces.insert(obj.faces.end(), &abc[0], &abc[6]);
@@ -160,6 +478,7 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj)
     }
     else if (line[0] == 'v')
     {
+        float s = 1.0f;
         size_t n = 3;
         size_t pos = 1;
         std::vector<float> *vp = &obj.pos;
@@ -174,12 +493,16 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj)
             pos = 2;
             vp = &obj.norm;
         }
+        else
+        {
+            s = scale;
+        }
         float fv;
         size_t got = 0;
         char const *strptr = line.c_str() + pos;
         while (get_line_float(strptr, fv) && got < n)
         {
-            vp->push_back(fv);
+            vp->push_back(fv * s);
             ++got;
         }
         while (got < n)
@@ -188,23 +511,93 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj)
             ++got;
         }
     }
+    else if (line.substr(0, 7) == "mtllib ")
+    {
+        size_t n = 7;
+        size_t size = line.size();
+        while (n < size && isspace(line[n]))
+        {
+            ++n;
+        }
+        if (n == size)
+        {
+            throw std::runtime_error("Missing material library file name in obj");
+        }
+        std::string name(line.substr(n));
+        read_mtllib(name, obj);
+    }
+    else if (line.substr(0, 7) == "usemtl ")
+    {
+        obj.groupMtlDirty = true;
+        size_t size = line.size(), pos = 7;
+        while (pos < size && line[pos] == ' ')
+        {
+            ++pos;
+        }
+        if (pos == line.size())
+        {
+            throw std::runtime_error("Missing material name in usemtl in obj");
+        }
+        std::string name(line.substr(pos));
+        obj.curGroupMtl.mtlname = name;
+    }
+    else if (line[0] == 'g')
+    {
+        size_t pos = 1, size = line.size();
+        while (pos < size && isspace(line[pos]))
+        {
+            ++pos;
+        }
+        if (pos == size)
+        {
+            throw std::runtime_error("Missing group name in obj file");
+        }
+        std::string name(line.substr(pos));
+        obj.curGroupMtl.groupname = name;
+    }
     else
     {
         //  do nothing
     }
 }
 
-void read_obj(IxRead *file, IModelData *m)
+void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
 {
-    Obj obj;
+    Obj obj(dir);
     char const *data = (char const *)file->dataSegment(0, file->size());
     char const *end = data + file->size();
     while (data < end)
     {
         char const *eol = end_of_line(data, end);
-        parse_obj_line(data, eol, obj);
+        parse_obj_line(data, eol, obj, scale);
         data = eol + 1;
     }
+    VertexMerge<VertPtn> merge;
+    for (std::vector<int>::iterator ptr(obj.faces.begin()), end(obj.faces.end());
+        ptr != end;)
+    {
+        VertPtn vptn;
+        int pi = *ptr++;
+        int ti = *ptr++;
+        int ni = *ptr++;
+        memcpy(&vptn.x, &obj.pos[pi * 3], 12);
+        memcpy(&vptn.tu, &obj.uv[ti * 2], 12);
+        memcpy(&vptn.nx, &obj.norm[ni * 3], 12);
+        merge.addVertex(vptn);
+    }
+    //  build batches
+    //  build materials
+    TriangleBatch batch;
+    batch.bone = 0;
+    batch.firstTriangle = 0;
+    batch.material = 0;
+    batch.maxVertexIndex = merge.getVertices().size() - 1;
+    batch.minVertexIndex = 0;
+    batch.numTriangles = merge.getIndices().size() / 3;
+    m->setBatches(&batch, 1);
+    m->setIndexData(&merge.getIndices()[0], batch.numTriangles * 3 * 4, 32);
+    m->setVertexData(&merge.getVertices()[0], merge.getVertices().size() * sizeof(VertPtn), sizeof(VertPtn));
+    m->setVertexLayout(VertPtn::layout_, sizeof(VertPtn::layout_)/sizeof(VertPtn::layout_[0]));
 }
 
 void read_bin(IxRead *file, IModelData *m)
@@ -244,6 +637,10 @@ void read_bin(IxRead *file, IModelData *m)
             readBuffer(file, buffer);
             m->setBones((Bone const *)&buffer[0], buffer.size() / sizeof(Bone));
             break;
+        case bm_magicLayout:
+            readBuffer(file, buffer);
+            m->setVertexLayout((VertexLayout *)&buffer[0], buffer.size() / sizeof(VertexLayout));
+            break;
         default:
             throw std::runtime_error("Unknown bin model file chunk type");
         }
@@ -257,7 +654,7 @@ Model::~Model()
     glDeleteBuffers(1, &indices_);
 }
 
-Model *Model::readFromFile(IxRead *file, GLContext *ctx)
+Model *Model::readFromFile(IxRead *file, GLContext *ctx, std::string const &dir)
 {
     Model *m = 0;
     try
@@ -265,7 +662,7 @@ Model *Model::readFromFile(IxRead *file, GLContext *ctx)
         if (file->type() == "obj")
         {
             m = new Model(ctx);
-            read_obj(file, m);
+            read_obj(file, m, 1.0f, dir);
             return m;
         }
         if (file->type() == "bin")
@@ -355,12 +752,65 @@ Bone const *Model::bones(size_t *oCount)
     return *oCount ? &bones_[0] : 0;
 }
 
+Bone const *Model::boneNamed(std::string const &name)
+{
+    for (std::vector<Bone>::iterator ptr(bones_.begin()), end(bones_.end());
+        ptr != end; ++ptr)
+    {
+        if (!strncmp((*ptr).name, name.c_str(), sizeof((*ptr).name)))
+        {
+            return &(*ptr);
+        }
+    }
+    return 0;
+}
+
 void Model::bind()
 {
     glBindBuffer(GL_ARRAY_BUFFER, vertices_);
-    glAssertError();
+glAssertError();
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+glAssertError();
+    for (std::vector<VertexLayout>::iterator ptr(layout_.begin()), end(layout_.end());
+        ptr != end; ++ptr)
+    {
+        switch ((*ptr).channel)
+        {
+        case vc_position:
+            glVertexPointer((*ptr).componentCount, (GLenum)(*ptr).componentKind, vertexBytes_, (void const *)(*ptr).offset);
+            glEnableClientState(GL_VERTEX_ARRAY);
+            break;
+        case vc_normal:
+            glNormalPointer((GLenum)(*ptr).componentKind, vertexBytes_, (void const *)(*ptr).offset);
+            glEnableClientState(GL_NORMAL_ARRAY);
+            break;
+        case vc_texture0:
+            glTexCoordPointer((*ptr).componentCount, (GLenum)(*ptr).componentKind, vertexBytes_, (void const *)(*ptr).offset);
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            break;
+        default:
+            throw std::runtime_error("Not implemented: other vertex channels");
+        }
+glAssertError();
+    }
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_);
-    glAssertError();
+glAssertError();
+}
+
+void Model::issue(Matrix const &modelview)
+{
+    glLoadTransposeMatrixf((float *)modelview.rows);
+glAssertError();
+    for (std::vector<TriangleBatch>::iterator ptr(batches_.begin()), end(batches_.end());
+        ptr != end; ++ptr)
+    {
+        glDrawRangeElements(GL_TRIANGLES, (*ptr).minVertexIndex, (*ptr).maxVertexIndex, (*ptr).numTriangles * 3, 
+            (indexBits_ == 32) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT,
+            (void *)((*ptr).firstTriangle * indexBits_ >> 3));
+glAssertError();
+    }
 }
 
 Model::Model(GLContext *ctx)

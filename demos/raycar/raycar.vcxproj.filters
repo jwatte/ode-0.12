@@ -36,6 +36,18 @@
     <ClCompile Include="context.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gameobj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="asset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="scenegraph.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="math.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rc_input.h">
@@ -54,6 +66,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rc_context.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_vertexmerge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_gameobj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_scenegraph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

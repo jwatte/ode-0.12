@@ -99,7 +99,7 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <AdditionalDependencies>glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -196,20 +196,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="asset.cpp" />
     <ClCompile Include="context.cpp" />
+    <ClCompile Include="gameobj.cpp" />
     <ClCompile Include="input.cpp" />
     <ClCompile Include="ixfile.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="raycar.cpp" />
+    <ClCompile Include="math.cpp" />
     <ClCompile Include="scene.cpp" />
+    <ClCompile Include="scenegraph.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="rc_asset.h" />
+    <ClInclude Include="rc_config.h" />
     <ClInclude Include="rc_context.h" />
+    <ClInclude Include="rc_gameobj.h" />
     <ClInclude Include="rc_input.h" />
     <ClInclude Include="rc_ixfile.h" />
+    <ClInclude Include="rc_math.h" />
     <ClInclude Include="rc_model.h" />
     <ClInclude Include="rc_scene.h" />
+    <ClInclude Include="rc_scenegraph.h" />
+    <ClInclude Include="rc_vertexmerge.h" />
     <ClInclude Include="rc_window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

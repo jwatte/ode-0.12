@@ -21,7 +21,9 @@ HINSTANCE hInstance;
 #include "rc_scene.h"
 #include "rc_model.h"
 #include "rc_ixfile.h"
-
+#include "rc_asset.h"
+#include "rc_context.h"
+#include "rc_scenegraph.h"
 
 bool quitAfterArgs = false;
 
@@ -31,14 +33,16 @@ int height = 576;
 double maxStepTime = 0.025;
 double stepTime = 1.0 / 120.0;
 
+//  used when converting
+float gScale = 1.0f;
 
-void obj_to_bin(char const *from, char const *to)
+void obj_to_bin(char const *from, char const *to, float scale)
 {
     IxRead *rd = IxRead::readFromFile(from);
     IxWrite *wr = IxWrite::writeToFile(to);
     ModelWriter *mw = ModelWriter::writeToFile(wr);
 
-    read_obj(rd, mw);
+    read_obj(rd, mw, scale, dirname(from));
 
     delete mw;
     delete rd;
@@ -58,7 +62,7 @@ char const *requireArg(char const *argv[], int &argc)
 
 void parseArgs(int argc, char const *argv[])
 {
-    for (int i = 1; i < argc; ++i)
+    for (int i = 0; i < argc; ++i)
     {
         if (argv[i][0] == '-')
         {
@@ -66,12 +70,28 @@ void parseArgs(int argc, char const *argv[])
             {
                 sscanf_s(requireArg(argv, i), " %d x %d", &width, &height);
             }
+            else if (!strcmp(argv[i], "--scale"))
+            {
+                char const *scl = requireArg(argv, i);
+                float a = 0;
+                float b = 0;
+                int n = sscanf_s(scl, "%f / %f", &a, &b);
+                if (n == 1)
+                {
+                    b = 1;
+                }
+                if (n == 0 || b <= 0)
+                {
+                    throw std::runtime_error(std::string("bad --scale argument: ") + scl);
+                }
+                gScale = a / b;
+            }
             else if (!strcmp(argv[i], "--objtobin"))
             {
                 char const *aObj = requireArg(argv, i);
                 char const *aBin = requireArg(argv, i);
-                fprintf(stderr, "Converting obj %s to bin %s\n", aObj, aBin);
-                obj_to_bin(aObj, aBin);
+                fprintf(stderr, "Converting obj %s to bin %s with scale %g\n", aObj, aBin, gScale);
+                obj_to_bin(aObj, aBin, gScale);
                 quitAfterArgs = true;
             }
             else if (!strcmp(argv[i], "--quit"))
@@ -104,20 +124,30 @@ void mainLoop()
         while (running)
         {
             setupWindow(width, height, "raycar");
-            loadScene("raycar.scn");
+            Asset::init(GLContext::context());
+            SceneGraph::init(GLContext::context());
+            loadScene("content/raycar.scn");
             resetTimer();
             double now = 0;
             while (sceneRunning && running)
             {
+                pollInput();
                 double next = timer();
-                if (next > now + maxStepTime)
+                if (active)
                 {
-                    now = next - maxStepTime;
+                    if (next > now + maxStepTime)
+                    {   //  falling behind
+                        now = next - maxStepTime;
+                    }
+                    while (now < next)
+                    {
+                        stepScene();
+                        now += stepTime;
+                    }
                 }
-                while (now < next)
+                else
                 {
-                    stepScene();
-                    now += stepTime;
+                    now = next;
                 }
                 renderWindow();
             }
@@ -129,6 +159,23 @@ void mainLoop()
     }
 }
 
+
+
+int main(int argc, char const *argv[])
+{
+    try
+    {
+        parseArgs(argc-1, argv+1);
+    }
+    catch (std::exception const &x)
+    {
+        error(std::string("Error during command option parsing: ") + x.what());
+    }
+
+    mainLoop();
+
+    return 0;
+}
 
 #if WINDOWS_MAIN
 
@@ -191,23 +238,8 @@ int CALLBACK WinMain(
     int argc = argv.size() - 1;
     char const **argvp = &argv[0];
 
-    parseArgs(argc, argvp);
-
-    mainLoop();
-
-    return 0;
-}
-#endif
-
-#if UNIX_MAIN
-
-int main(int argc, char const *argv[])
-{
-    parseArgs(argc, argv);
-
-    mainLoop();
-
-    return 0;
+    return main(argc+1, argvp-1);
 }
 
 #endif
+

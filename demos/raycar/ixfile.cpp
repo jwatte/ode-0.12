@@ -3,7 +3,20 @@
 
 #include <stdio.h>
 #include <string>
+#include <algorithm>
 
+
+std::string dirname(std::string const &file)
+{
+    std::string s(file);
+    std::replace(s.begin(), s.end(), '\\', '/');
+    s = s.substr(0, s.find_last_of('/'));
+    if (s.size() == 0)
+    {
+        s = ".";
+    }
+    return s + "/";
+}
 
 IxRead::~IxRead()
 {
@@ -14,10 +27,11 @@ IxRead *IxRead::readFromFile(char const *name)
 {
     IxRead *ir = 0;
     FILE *f = 0;
-    fopen_s(&f, name, "rb");
+    std::string path(name);
+    fopen_s(&f, path.c_str(), "rb");
     if (!f)
     {
-        throw std::runtime_error(std::string("File not found: ") + name);
+        throw std::runtime_error(std::string("File not found: ") + path);
     }
     try
     {
@@ -25,7 +39,7 @@ IxRead *IxRead::readFromFile(char const *name)
         long l = ftell(f);
         if (l > MAX_FILE_SIZE)
         {
-            throw std::runtime_error(std::string("File ") + name + " is too large.");
+            throw std::runtime_error(std::string("File ") + path + " is too large.");
         }
         fseek(f, 0, 0);
         ir = new IxRead();
@@ -100,7 +114,8 @@ void const *IxRead::dataSegment(uint32_t pos, uint32_t size) const
 
 IxRead::IxRead() :
     data_(0),
-    size_(0)
+    size_(0),
+    pos_(0)
 {
 }
 
@@ -116,10 +131,14 @@ IxWrite::~IxWrite()
 IxWrite *IxWrite::writeToFile(char const *name)
 {
     FILE *f = 0;
-    fopen_s(&f, name, "wb");
+    std::string pathName(name);
+#if defined(_WINDOWS)
+    std::replace(pathName.begin(), pathName.end(), '/', '\\');
+#endif
+    fopen_s(&f, pathName.c_str(), "wb");
     if (!f)
     {
-        throw std::runtime_error(std::string("Cannot write to file: ") + name);
+        throw std::runtime_error(std::string("Cannot write to file: ") + pathName);
     }
     IxWrite *ret = new IxWrite();
     ret->handle_ = f;

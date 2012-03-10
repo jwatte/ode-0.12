@@ -6,9 +6,11 @@
 
 void setupWindow(int width, int height, char const *title);
 void renderWindow();
+void pollInput();
 void error(std::string const&arg);
 void error(int error, std::string const &arg);
 extern bool running;
+extern bool active;
 
 void resetTimer();
 double timer();

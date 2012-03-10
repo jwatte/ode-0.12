@@ -4,9 +4,25 @@
 #include <stdint.h>
 #include <vector>
 
+#include "rc_math.h"
+
 class GLContext;
 class IxRead;
 class IxWrite;
+
+enum VertexChannel
+{
+    vc_position,
+    vc_normal,
+    vc_color0,
+    vc_color1,
+    vc_texture0,
+    vc_texture1,
+    vc_tangent0,
+    vc_tangent1,
+    vc_bitangent0,
+    vc_bitangent1
+};
 
 struct VertexLayout
 {
@@ -14,6 +30,14 @@ struct VertexLayout
     uint32_t offset;
     uint32_t componentCount;
     uint32_t componentKind;
+};
+
+struct VertPtn
+{
+    float x, y, z;
+    float tu, tv;
+    float nx, ny, nz;
+    static VertexLayout layout_[3];
 };
 
 struct TriangleBatch
@@ -32,21 +56,22 @@ enum MapKind
     mk_diffuse,
     mk_specular,
     mk_opacity,
+    mk_normal,
     mk_endOfKinds
 };
 
 enum MapChannel
 {
-    mk_grayscale,
-    mk_alpha,
-    mk_rgb,
-    mk_rgba,
-    mk_endOfChannels
+    mc_grayscale,
+    mc_alpha,
+    mc_rgb,
+    mc_rgba,
+    mc_endOfChannels
 };
 
 struct MapInfo
 {
-    char name[62];
+    char name[64];
     MapKind kind;
     MapChannel channel;
 };
@@ -55,6 +80,8 @@ struct Material
 {
     char name[32];
     MapInfo maps[mk_endOfKinds];
+    Vec3 colors[mk_endOfKinds];
+    float specPower;
 };
 
 struct Bone
@@ -80,7 +107,7 @@ class Model : public IModelData
 {
 public:
     ~Model();
-    static Model *readFromFile(IxRead *file, GLContext *ctx);
+    static Model *readFromFile(IxRead *file, GLContext *ctx, std::string const &dir);
     static Model *createEmpty(GLContext *ctx);
 
     void setVertexData(void const *data, size_t size, uint32_t vBytes);
@@ -93,8 +120,11 @@ public:
     TriangleBatch const *batches(size_t *oCount);
     Material const *materials(size_t *oCount);
     Bone const *bones(size_t *oCount);
+    Bone const *boneNamed(std::string const &name);
     void bind();
+    void issue(Matrix const &modelview);
 private:
+    friend class ModelSceneNode;
     Model(GLContext *ctx);
 
     GLContext *ctx_;
@@ -125,8 +155,7 @@ private:
     IxWrite *wr_;
 };
 
-
-void read_obj(IxRead *file, IModelData *m);
+void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir);
 void read_bin(IxRead *file, IModelData *m);
 
 

@@ -44,4 +44,6 @@ private:
     size_t size_;
 };
 
+std::string dirname(std::string const &path);
+
 #endif  rc_ixfile_h

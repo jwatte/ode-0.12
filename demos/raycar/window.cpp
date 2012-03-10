@@ -1,6 +1,9 @@
 
 #include "rc_window.h"
 #include "rc_input.h"
+#include "rc_context.h"
+#include "rc_scene.h"
+
 #include <GL/glew.h>
 
 #if defined(_WINDOWS)
@@ -288,6 +291,9 @@ void setupWindow(int width, int height, char const *title)
     {
         WCreateHwnd(width, height, title);
     }
+    RECT r;
+    ::GetWindowRect(hWnd, &r);
+    GLContext::context()->realize(r.right, r.bottom);
     resetTimer();
 #endif
 }
@@ -295,6 +301,22 @@ void setupWindow(int width, int height, char const *title)
 void renderWindow()
 {
 #if defined(_WINDOWS)
+    ::wglMakeCurrent(hDC, hGLRC);
+#endif
+    glClearColor(1.0f, 1.0f, 0.0f, 0.0f);
+    glClearDepth(1.0f);
+    glClearStencil(128);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    renderScene();
+
+#if defined(_WINDOWS)
+    ::SwapBuffers(hDC);
+#endif
+}
+
+void pollInput()
+{
     MSG msg;
     if (!active)
     {
@@ -305,15 +327,4 @@ void renderWindow()
         ::TranslateMessage(&msg);
         ::DispatchMessageW(&msg);
     }
-    ::wglMakeCurrent(hDC, hGLRC);
-#endif
-    glClearColor(1.0f, 1.0f, 0.0f, 0.0f);
-    glClearDepth(1.0f);
-    glClearStencil(128);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-#if defined(_WINDOWS)
-    ::SwapBuffers(hDC);
-#endif
 }
-

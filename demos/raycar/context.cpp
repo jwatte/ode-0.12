@@ -17,3 +17,23 @@ void glAssertError_(char const *file, int line)
         throw std::runtime_error(std::string(buf));
     }
 }
+
+static GLContext ctx;
+
+GLContext *GLContext::context()
+{
+    return &ctx;
+}
+
+void GLContext::realize(int width, int height)
+{
+    width_ = width;
+    height_ = height;
+    glViewport(0, 0, width, height);
+    glDepthRange(0.0f, 1.0f);
+}
+
+Vec3 GLContext::size()
+{
+    return Vec3((float)width_, (float)height_, 1.0f);
+}
