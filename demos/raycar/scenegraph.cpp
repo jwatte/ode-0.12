@@ -56,7 +56,9 @@ public:
         cross(up, back, right);
         cam_->mmat_.setRow(0, right);
         cam_->mmat_.setRow(1, up);
-        cam_->mmat_.setRow(2, back);
+        Vec3 forward(back);
+        scale(forward, -1);
+        cam_->mmat_.setRow(2, forward);
         Vec3 zero;
         cam_->mmat_.setRow(3, zero);
         subFrom(zero, pos());
@@ -177,7 +179,6 @@ SceneNode *SceneGraph::nodeNamed(std::string const &findName)
 
 void CameraInfo::getModelView(SceneNode const *node, Matrix *omv) const
 {
-    Vec3 const &pos(node->pos());
     *omv = node->transform();
     multiply(mmat_, *omv);
 }

@@ -2,7 +2,7 @@
 
 target {
     type obstacle
-    model raycar-unified.bin
+    model crate1.bin
     x 0
     y 0
     z 0

@@ -24,9 +24,12 @@ HINSTANCE hInstance;
 #include "rc_asset.h"
 #include "rc_context.h"
 #include "rc_scenegraph.h"
+#include "rc_reference.h"
+#include "rc_bitmap.h"
 
 bool quitAfterArgs = false;
-
+bool buildDeps = false;
+bool noDeps = false;
 
 int width = 1024;
 int height = 576;
@@ -48,7 +51,36 @@ void obj_to_bin(char const *from, char const *to, float scale)
     delete rd;
 }
 
-
+void build_asset(std::string const &src)
+{
+    std::string dst(Reference::makeOutputName(src));
+    std::string ext = fileext(src);
+    if (ext == "obj")
+    {
+        fprintf(stderr, "Converting obj %s to bin %s with scale %g\n", src.c_str(), dst.c_str(), gScale);
+        obj_to_bin(src.c_str(), dst.c_str(), gScale);
+    }
+    else if (ext == "tga" || ext == "jpg" || ext == "png")
+    {
+        fprintf(stderr, "Converting image %s to %s\n", src.c_str(), dst.c_str());
+        image_build(src, dst);
+    }
+    else if (ext == "scn")
+    {
+        fprintf(stderr, "Converting scn %s to %s\n", src.c_str(), dst.c_str());
+        //  todo: build scene file by loading it, extracting references, and then saving it
+        copy_file(src, dst);
+    }
+    else
+    {
+        throw std::runtime_error(std::string("Don't know how to build asset: ") + src);
+    }
+    std::string str(dst + "::\t" + src + "\nall::\t" + dst + "\n");
+    std::string dst_d(dst + ".d");
+    IxWrite *iw = IxWrite::writeToFile(dst_d.c_str());
+    iw->write(str.c_str(), str.size());
+    delete iw;
+}
 
 char const *requireArg(char const *argv[], int &argc)
 {
@@ -86,17 +118,19 @@ void parseArgs(int argc, char const *argv[])
                 }
                 gScale = a / b;
             }
-            else if (!strcmp(argv[i], "--objtobin"))
+            else if (!strcmp(argv[i], "--build-asset"))
             {
-                char const *aObj = requireArg(argv, i);
-                char const *aBin = requireArg(argv, i);
-                fprintf(stderr, "Converting obj %s to bin %s with scale %g\n", aObj, aBin, gScale);
-                obj_to_bin(aObj, aBin, gScale);
+                build_asset(requireArg(argv, i));
                 quitAfterArgs = true;
+                buildDeps = true;
             }
             else if (!strcmp(argv[i], "--quit"))
             {
                 quitAfterArgs = true;
+            }
+            else if (!strcmp(argv[i], "--no-deps"))
+            {
+                noDeps = true;
             }
             else
             {
@@ -107,6 +141,14 @@ void parseArgs(int argc, char const *argv[])
         {
         unknown:
             throw std::runtime_error(std::string("Unknown argument: ") + argv[i]);
+        }
+    }
+    if (buildDeps && !noDeps)
+    {
+        for (size_t i = 0; i != Reference::numBuiltItems(); ++i)
+        {
+            std::string assetName(Reference::builtItem(i));
+            build_asset(assetName);
         }
     }
     if (quitAfterArgs)

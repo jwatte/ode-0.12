@@ -64,9 +64,10 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\..\glew-1.7.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\..\glew-1.7.0\lib;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProjectDir)\..\glew-1.7.0\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(ProjectDir)\..\glew-1.7.0\include;$(ProjectDir)\..\devil-1.7.8\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\..\glew-1.7.0\lib;$(ProjectDir)\..\devil-1.7.8\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ProjectDir)\..\glew-1.7.0\bin;$(ProjectDir)\..\devil-1.7.8\lib;$(ExecutablePath)</ExecutablePath>
+    <CustomBuildAfterTargets>BuildLink</CustomBuildAfterTargets>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -76,9 +77,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)\..\glew-1.7.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\..\glew-1.7.0\lib;$(LibraryPath)</LibraryPath>
-    <ExecutablePath>$(ProjectDir)\..\glew-1.7.0\bin;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(ProjectDir)\..\glew-1.7.0\include;$(ProjectDir)\..\devil-1.7.8\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)\..\glew-1.7.0\lib;$(ProjectDir)\..\devil-1.7.8\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ProjectDir)\..\glew-1.7.0\bin;$(ProjectDir)\..\devil-1.7.8\lib;$(ExecutablePath)</ExecutablePath>
+    <CustomBuildAfterTargets>BuiltProjectOutputGroup</CustomBuildAfterTargets>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -102,20 +104,20 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
-      <AdditionalDependencies>glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>devil.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)\..\glew-1.7.0\bin\glew32.dll $(OutDir)\glew32.dll</Command>
+      <Command>copylibs $(ProjectDir) $(OutDir)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Message>Copy GLEW</Message>
+      <Message>Copy libraries</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)\glew32.dll</Outputs>
+      <Outputs>$(OutDir)\glew32.dll;$(OutDir)\DevIL.dll</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -157,20 +159,20 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
-      <AdditionalDependencies>opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>devil.lib;glew32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
       </Command>
     </PostBuildEvent>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)\..\glew-1.7.0\bin\glew32.dll $(OutDir)\glew32.dll</Command>
+      <Command>copylibs $(ProjectDir) $(OutDir)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Message>Copy GLEW</Message>
+      <Message>Copy libraries</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)\glew32.dll</Outputs>
+      <Outputs>$(OutDir)\glew32.dll;$(OutDir)\DevIL.dll</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -197,6 +199,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="asset.cpp" />
+    <ClCompile Include="bitmap.cpp" />
     <ClCompile Include="context.cpp" />
     <ClCompile Include="gameobj.cpp" />
     <ClCompile Include="input.cpp" />
@@ -204,12 +207,14 @@
     <ClCompile Include="model.cpp" />
     <ClCompile Include="raycar.cpp" />
     <ClCompile Include="math.cpp" />
+    <ClCompile Include="reference.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="scenegraph.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rc_asset.h" />
+    <ClInclude Include="rc_bitmap.h" />
     <ClInclude Include="rc_config.h" />
     <ClInclude Include="rc_context.h" />
     <ClInclude Include="rc_gameobj.h" />
@@ -217,6 +222,7 @@
     <ClInclude Include="rc_ixfile.h" />
     <ClInclude Include="rc_math.h" />
     <ClInclude Include="rc_model.h" />
+    <ClInclude Include="rc_reference.h" />
     <ClInclude Include="rc_scene.h" />
     <ClInclude Include="rc_scenegraph.h" />
     <ClInclude Include="rc_vertexmerge.h" />

@@ -5,11 +5,13 @@
 #include <ctype.h>
 #include <sstream>
 #include <algorithm>
+#include <map>
 
 #include "rc_model.h"
 #include "rc_context.h"
 #include "rc_ixfile.h"
 #include "rc_vertexmerge.h"
+#include "rc_reference.h"
 
 
 enum BinMagic
@@ -64,8 +66,13 @@ char const *end_of_line(char const *pos, char const *end)
         }
         ++pos;
     }
-    //  a CRLF (or two LF, or whatever) count as a single line
-    if (pos < end && (*pos == '\r' || *pos == '\n'))
+    return pos;
+}
+
+char const *skip_space(char const *pos, char const *end = 0)
+{
+    //  not at end?
+    while (((end == 0 && *pos) || (end != 0 && pos != end)) && isspace(*pos))
     {
         ++pos;
     }
@@ -154,10 +161,7 @@ public:
 
 bool get_line_float(char const *&line, float &fv)
 {
-    while (*line && isspace(*line))
-    {
-        ++line;
-    }
+    line = skip_space(line);
     char *end = 0;
     fv = (float)strtod(line, &end);
     if (end != 0 && end > line)
@@ -171,10 +175,7 @@ bool get_line_float(char const *&line, float &fv)
 bool get_line_indices(char const *&line, int &a, int &b, int &c)
 {
     a = b = c = 0;
-    while (*line && isspace(*line))
-    {
-        ++line;
-    }
+    line = skip_space(line);
     if (!*line)
     {
         return false;
@@ -188,7 +189,7 @@ bool get_line_indices(char const *&line, int &a, int &b, int &c)
     {
         throw std::runtime_error("Invalid vertex index in obj file");
     }
-    char *x;
+    char *x = 0;
     a = (int)strtol(start, &x, 10);
     if (a == 0 || x != line)
     {
@@ -348,27 +349,24 @@ newmtl 01___Default
 
 void read_mtllib(std::string const &name, Obj &obj)
 {
-    IxRead *r = IxRead::readFromFile((obj.dir_ + "/" + name).c_str());
+    IxRead *r = Reference::get(obj.dir_, name);
     size_t size = r->size();
     char const *ptr = (char const *)r->dataSegment(0, size);
     char const *fileEnd = ptr + size;
     while (ptr < fileEnd)
     {
-        while (ptr < fileEnd && isspace(*ptr))
-        {
-            ++ptr;
-        }
+        ptr = skip_space(ptr, fileEnd);
         if (ptr == fileEnd)
         {
             break;
         }
-        char const *end = ptr;
-        while (end < fileEnd && *end != '\n')
-        {
-            ++end;
-        }
+        char const *end = end_of_line(ptr, fileEnd);
         std::string line(ptr, end);
-        ptr = end + 1;
+        ptr = end;
+        while (ptr < fileEnd && (*ptr == '\n' || *ptr == '\r'))
+        {
+            ++ptr;
+        }
         read_mtllib_line(obj, line);
     }
     if (obj.curMtl.name.size())
@@ -380,23 +378,16 @@ void read_mtllib(std::string const &name, Obj &obj)
 
 void parse_obj_line(char const *data, char const *eol, Obj &obj, float scale)
 {
-    while (data < eol && isspace(*data))
-    {
-        ++data;
-    }
-    char const *end = data;
-    while (end < eol && *end != '\r' && *end != '\n')
-    {
-        ++end;
-    }
+    data = skip_space(data, eol);
     if (data == eol || *data == '\r' || *data == '\n')
     {
-        //  nothing to do
+        //  empty line -- nothing to do
         return;
     }
+    char const *end = end_of_line(data, eol);
     if (end - data < 3)
     {
-        //  not a line I care about
+        //  not a line I care about -- make sure I don't index past end of line
         return;
     }
     std::string line(data, end);
@@ -561,6 +552,38 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj, float scale)
     }
 }
 
+void convert_mapname(std::string const &dir, std::string const &mapname, MapInfo &mi, MapKind mk)
+{
+    memset(&mi, 0, sizeof(mi));
+    if (!mapname.size())
+    {
+        return;
+    }
+    std::string outName(Reference::build(dir, mapname));
+    if (outName.size() >= sizeof(mi.name))
+    {
+        throw std::runtime_error(std::string("Map path name is too long: ") + outName);
+    }
+    mi.channel = mc_rgb;
+    mi.kind = mk;
+    strncpy_s(mi.name, outName.c_str(), sizeof(mi.name));
+    mi.name[sizeof(mi.name)-1] = 0;
+}
+
+void convert_obj_material(std::string const &dir, Mtl const &om, Material &mm)
+{
+    memset(&mm, 0, sizeof(mm));
+    mm.specPower = om.Ns;
+    mm.colors[mk_ambient] = om.Ka;
+    mm.colors[mk_diffuse] = om.Kd;
+    mm.colors[mk_specular] = om.Ks;
+    mm.colors[mk_emissive] = om.Ke;
+    convert_mapname(dir, om.map_Ka, mm.maps[mk_ambient], mk_ambient);
+    convert_mapname(dir, om.map_Kd, mm.maps[mk_diffuse], mk_diffuse);
+    convert_mapname(dir, om.map_Ks, mm.maps[mk_specular], mk_specular);
+    convert_mapname(dir, om.map_Ke, mm.maps[mk_emissive], mk_emissive);
+}
+
 void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
 {
     Obj obj(dir);
@@ -570,7 +593,11 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
     {
         char const *eol = end_of_line(data, end);
         parse_obj_line(data, eol, obj, scale);
-        data = eol + 1;
+        data = eol;
+        while (data < end && (*data == '\n' || *data == '\r'))
+        {
+            ++data;
+        }
     }
     VertexMerge<VertPtn> merge;
     for (std::vector<int>::iterator ptr(obj.faces.begin()), end(obj.faces.end());
@@ -586,16 +613,54 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
         merge.addVertex(vptn);
     }
     //  build batches
+    std::vector<TriangleBatch> batches;
+    VertexMerge<Material> materials;
+    for (size_t i = 0, n = obj.groupmtls.size(); i != n; ++i)
+    {
+        TriangleBatch batch;
+        size_t end = obj.faces.size();
+        if (i < n-1)
+        {
+            end = obj.groupmtls[i+1].offset;
+        }
+        batch.firstTriangle = obj.groupmtls[i].offset / 3;
+        batch.numTriangles = end / 3 - batch.firstTriangle;
+        batch.minVertexIndex = obj.faces[obj.groupmtls[i].offset];
+        batch.maxVertexIndex = batch.minVertexIndex;
+        for (size_t q = batch.firstTriangle * 3, qn = q + batch.numTriangles * 3; q != qn; ++q)
+        {
+            uint32_t ix = obj.faces[q];
+            if (ix < batch.minVertexIndex)
+            {
+                batch.minVertexIndex = ix;
+            }
+            if (ix > batch.maxVertexIndex)
+            {
+                batch.maxVertexIndex = ix;
+            }
+        }
+        batch.bone = 0;
     //  build materials
-    TriangleBatch batch;
-    batch.bone = 0;
-    batch.firstTriangle = 0;
-    batch.material = 0;
-    batch.maxVertexIndex = merge.getVertices().size() - 1;
-    batch.minVertexIndex = 0;
-    batch.numTriangles = merge.getIndices().size() / 3;
-    m->setBatches(&batch, 1);
-    m->setIndexData(&merge.getIndices()[0], batch.numTriangles * 3 * 4, 32);
+        uint32_t mtlix = obj.mtls.size();
+        for (size_t m = 0, mn = obj.mtls.size(); m != mn; ++m)
+        {
+            if (obj.groupmtls[i].mtlname == obj.mtls[m].name)
+            {
+                mtlix = m;
+            }
+        }
+        if (mtlix == obj.mtls.size())
+        {
+            throw std::runtime_error(std::string("Used material name is not in library: ") + obj.groupmtls[i].mtlname);
+        }
+        Material mm;
+        convert_obj_material(obj.dir_, obj.mtls[mtlix], mm);
+        batch.material = materials.addVertex(mm);
+        batches.push_back(batch);
+    }
+    m->setMaterials(&materials.getVertices()[0], materials.getVertices().size());
+    m->setBatches(&batches[0], batches.size());
+    m->setIndexData(&merge.getIndices()[0], merge.getIndices().size() * 4, 32);
     m->setVertexData(&merge.getVertices()[0], merge.getVertices().size() * sizeof(VertPtn), sizeof(VertPtn));
     m->setVertexLayout(VertPtn::layout_, sizeof(VertPtn::layout_)/sizeof(VertPtn::layout_[0]));
 }
@@ -654,7 +719,7 @@ Model::~Model()
     glDeleteBuffers(1, &indices_);
 }
 
-Model *Model::readFromFile(IxRead *file, GLContext *ctx, std::string const &dir)
+Model *Model::readFromFile(IxRead *file, GLContext *ctx, std::string const &dir, std::string const &filename)
 {
     Model *m = 0;
     try

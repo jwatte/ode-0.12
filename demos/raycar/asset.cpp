@@ -3,6 +3,7 @@
 #include "rc_model.h"
 #include "rc_context.h"
 #include "rc_ixfile.h"
+#include "rc_bitmap.h"
 
 #include <map>
 
@@ -34,7 +35,7 @@ public:
             return (*ptr).second;
         }
         std::string filePath(assetPath + key);
-        T *t = T::readFromFile(IxRead::readFromFile(filePath.c_str()), ctx_, dirname(filePath));
+        T *t = T::readFromFile(IxRead::readFromFile(filePath.c_str()), ctx_, dirname(filePath), filename(filePath));
         loaded_[key] = t;
         return t;
     }
@@ -43,6 +44,7 @@ public:
 };
 
 AssetLoader<Model> alModel;
+AssetLoader<Bitmap> alBitmap;
 
 void Asset::clearAllAssets()
 {
@@ -59,3 +61,7 @@ Model *Asset::model(std::string const &name)
     return alModel.getOrLoad(name);
 }
 
+Bitmap *Asset::bitmap(std::string const &name)
+{
+    return alBitmap.getOrLoad(name);
+}

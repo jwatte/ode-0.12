@@ -57,6 +57,7 @@ enum MapKind
     mk_specular,
     mk_opacity,
     mk_normal,
+    mk_emissive,
     mk_endOfKinds
 };
 
@@ -78,7 +79,6 @@ struct MapInfo
 
 struct Material
 {
-    char name[32];
     MapInfo maps[mk_endOfKinds];
     Vec3 colors[mk_endOfKinds];
     float specPower;
@@ -107,7 +107,7 @@ class Model : public IModelData
 {
 public:
     ~Model();
-    static Model *readFromFile(IxRead *file, GLContext *ctx, std::string const &dir);
+    static Model *readFromFile(IxRead *file, GLContext *ctx, std::string const &dir, std::string const &name);
     static Model *createEmpty(GLContext *ctx);
 
     void setVertexData(void const *data, size_t size, uint32_t vBytes);

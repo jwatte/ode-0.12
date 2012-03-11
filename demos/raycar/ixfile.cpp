@@ -1,6 +1,7 @@
 
 #include "rc_ixfile.h"
 
+#include <direct.h>
 #include <stdio.h>
 #include <string>
 #include <algorithm>
@@ -15,8 +16,63 @@ std::string dirname(std::string const &file)
     {
         s = ".";
     }
-    return s + "/";
+    return s;
 }
+
+std::string filename(std::string const &file)
+{
+    std::string s(file);
+    std::replace(s.begin(), s.end(), '\\', '/');
+    s = s.substr(s.find_last_of('/') + 1);
+    return s;
+}
+
+std::string fileext(std::string const &file)
+{
+    size_t pos = file.find_last_of('.');
+    if (pos == std::string::npos || pos == file.size() - 1)
+    {
+        throw std::runtime_error(std::string("File name does not have an extension: ") + file);
+    }
+    return file.substr(pos + 1);
+}
+
+std::string filenoext(std::string const &file)
+{
+    size_t pos = file.find_last_of('.');
+    if (pos == std::string::npos)
+    {
+        throw std::runtime_error(std::string("File name does not have an extension: ") + file);
+    }
+    return file.substr(0, pos);
+}
+
+void copy_file(std::string const &src, std::string const &dst)
+{
+    IxRead *ir = IxRead::readFromFile(src.c_str());
+    try
+    {
+        IxWrite *iw = IxWrite::writeToFile(dst.c_str());
+        try
+        {
+            iw->write(ir->dataSegment(0, ir->size()), ir->size());
+        }
+        catch (...)
+        {
+            delete iw;
+            throw;
+        }
+        delete iw;
+    }
+    catch (...)
+    {
+        delete ir;
+        throw;
+    }
+    delete ir;
+} 
+
+
 
 IxRead::~IxRead()
 {
@@ -28,10 +84,20 @@ IxRead *IxRead::readFromFile(char const *name)
     IxRead *ir = 0;
     FILE *f = 0;
     std::string path(name);
-    fopen_s(&f, path.c_str(), "rb");
+#if defined(_WINDOWS)
+    std::replace(path.begin(), path.end(), '/', '\\');
+#endif
+    char cwd[256];
+    _getcwd(cwd, 256);
+    cwd[255] = 0;
+    errno_t r = fopen_s(&f, path.c_str(), "rb");
     if (!f)
     {
-        throw std::runtime_error(std::string("File not found: ") + path);
+        char serr[256];
+        strerror_s(serr, 256, r);
+        throw std::runtime_error(std::string("File not found: ") + path +
+            "\nCurrent directory: " + cwd +
+            "\n" + serr);
     }
     try
     {

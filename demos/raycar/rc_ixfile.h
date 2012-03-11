@@ -45,5 +45,9 @@ private:
 };
 
 std::string dirname(std::string const &path);
+std::string filename(std::string const &file);
+std::string fileext(std::string const &path);
+std::string filenoext(std::string const &path);
+void copy_file(std::string const &src, std::string const &dst);
 
 #endif  rc_ixfile_h

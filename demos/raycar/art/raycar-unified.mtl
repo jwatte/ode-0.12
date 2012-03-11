@@ -1,7 +1,7 @@
 # 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
-# File Created: 09.03.2012 16:19:10
+# File Created: 10.03.2012 11:26:38
 
-newmtl 01___Default
+newmtl chassis
 	Ns 33.0000
 	Ni 1.5000
 	d 1.0000
@@ -12,7 +12,7 @@ newmtl 01___Default
 	Kd 0.5882 0.5882 0.5882
 	Ks 0.5940 0.5940 0.5940
 	Ke 0.0000 0.0000 0.0000
-	map_Ka C:\code\ode-0.12\demos\raycar\art\ChassisCompleteMap.tga
+	map_Ka C:\code\ode-0.12\demos\raycar\art\raycar.tga
 	map_Kd C:\code\ode-0.12\demos\raycar\art\raycar.tga
 
 newmtl 02___Default
@@ -26,5 +26,5 @@ newmtl 02___Default
 	Kd 0.5882 0.5882 0.5882
 	Ks 0.1170 0.1170 0.1170
 	Ke 0.0000 0.0000 0.0000
-	map_Ka C:\code\ode-0.12\demos\raycar\art\Wheel-RLCompleteMap.tga
+	map_Ka C:\code\ode-0.12\demos\raycar\art\tire.tga
 	map_Kd C:\code\ode-0.12\demos\raycar\art\tire.tga
