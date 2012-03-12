@@ -1,6 +1,7 @@
 
 #include "rc_reference.h"
 #include "rc_ixfile.h"
+#include "rc_bitmap.h"
 
 #include <set>
 #include <string>
@@ -43,13 +44,13 @@ static std::string new_ext(std::string ext)
     {
         return "bin";
     }
-    if (ext == "tga")
-    {
-        return "tga";
-    }
     if (ext == "scn")
     {
         return "scn";
+    }
+    if (is_supported_bitmap_ext(ext))
+    {
+        return "tga";
     }
     throw std::runtime_error(std::string("Don't know how to build an output from file extension: ") + ext);
 }

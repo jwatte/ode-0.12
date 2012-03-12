@@ -60,7 +60,7 @@ void build_asset(std::string const &src)
         fprintf(stderr, "Converting obj %s to bin %s with scale %g\n", src.c_str(), dst.c_str(), gScale);
         obj_to_bin(src.c_str(), dst.c_str(), gScale);
     }
-    else if (ext == "tga" || ext == "jpg" || ext == "png")
+    else if (is_supported_bitmap_ext(ext))
     {
         fprintf(stderr, "Converting image %s to %s\n", src.c_str(), dst.c_str());
         image_build(src, dst);

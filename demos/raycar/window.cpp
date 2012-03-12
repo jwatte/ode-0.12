@@ -128,7 +128,7 @@ LRESULT CALLBACK WWndProc(
             PAINTSTRUCT ps;
             HDC hdc = ::BeginPaint(hWnd, &ps);
             RECT r;
-            ::GetWindowRect(hWnd, &r);
+            ::GetClientRect(hWnd, &r);
             ::EndPaint(hWnd, &ps);
         }
         return 0;
@@ -184,15 +184,17 @@ void WCreateHwnd(int width, int height, char const *title)
     wchar_t wtitle[100];
     ctow(title, wtitle, 100);
 
+    RECT r = { 0, 0, width, height };
+    ::AdjustWindowRectEx(&r, WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU, false, WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW);
     hWnd = ::CreateWindowExW(
         WS_EX_APPWINDOW | WS_EX_OVERLAPPEDWINDOW,
         (LPCWSTR)wClass, 
         wtitle,
         WS_CAPTION | WS_OVERLAPPED | WS_SYSMENU,
-        96,
-        32,
-        width,
-        height,
+        96 - r.left,
+        32 - r.top,
+        r.right - r.left,
+        r.bottom - r.top,
         0,
         0,
         hInstance,
@@ -292,7 +294,7 @@ void setupWindow(int width, int height, char const *title)
         WCreateHwnd(width, height, title);
     }
     RECT r;
-    ::GetWindowRect(hWnd, &r);
+    ::GetClientRect(hWnd, &r);
     GLContext::context()->realize(r.right, r.bottom);
     resetTimer();
 #endif
@@ -303,13 +305,16 @@ void renderWindow()
 #if defined(_WINDOWS)
     ::wglMakeCurrent(hDC, hGLRC);
 #endif
+    GLContext::context()->preClear();
     glClearColor(1.0f, 1.0f, 0.0f, 0.0f);
     glClearDepth(1.0f);
     glClearStencil(128);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    GLContext::context()->preRender();
     renderScene();
 
+    GLContext::context()->preSwap();
 #if defined(_WINDOWS)
     ::SwapBuffers(hDC);
 #endif

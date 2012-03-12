@@ -27,9 +27,9 @@ public:
     virtual void render(CameraInfo const &cam)
     {
     glAssertError();
-        glMatrixMode(GL_MODELVIEW);
         Matrix m;
         cam.getModelView(this, &m);
+        glLoadTransposeMatrixf(&m.rows[0][0]);
         mdl_->bind();
         mdl_->issue(m);
     }
@@ -56,12 +56,12 @@ public:
         cross(up, back, right);
         cam_->mmat_.setRow(0, right);
         cam_->mmat_.setRow(1, up);
-        Vec3 forward(back);
-        scale(forward, -1);
-        cam_->mmat_.setRow(2, forward);
+        cam_->mmat_.setRow(2, back);
         Vec3 zero;
+        cam_->mmat_.setTranslation(zero);
         cam_->mmat_.setRow(3, zero);
         subFrom(zero, pos());
+        multiply(cam_->mmat_, zero);
         cam_->mmat_.setTranslation(zero);
     }
     virtual void render(CameraInfo const &cam)
@@ -125,19 +125,45 @@ SceneNode *SceneGraph::addCamera(std::string const &name, CameraInfo *cam)
 void SceneGraph::present(SceneNode *camera)
 {
     glAssertError();
+    glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glPolygonMode(GL_FRONT, GL_FILL);
+    glAssertError();
 
     //  setup camera
     CameraInfo ci;
     camera->prepare(ci);
     ci = *static_cast<CameraSceneNode *>(camera)->cam_;
 
+    glEnable(GL_LIGHT0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    Vec3 pos(1, 2, 3);
+    normalize(pos);
+    Matrix m(ci.mmat_);
+    m.setTranslation(Vec3(0, 0, 0));
+    multiply(m, pos);
+    glLightfv(GL_LIGHT0, GL_POSITION, &pos.x);
+
+    Rgba ambLight(0.25f, 0.2f, 0.3f);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, &ambLight.r);
+    Rgba diffLight(0.75f, 0.75f, 0.6f);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, &diffLight.r);
+    Rgba specLight(0.75f, 0.75f, 0.6f);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, &diffLight.r);
+    Rgba zero(0, 0, 0);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, &zero.r);
+
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     Vec3 sz(ctx_->size());
     float fy = tanf(ci.fovY / 360.0f * (float)3.1415927f);
     float fx = fy * sz.x / sz.y;
-    glFrustum(-fx, fx, -fy, fy, 1.0f, 100000.0f);
+    glFrustum(-fx, fx, -fy, fy, 0.9f, 100000.0f);
     glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
     glAssertError();
 
     //  prepare all objects

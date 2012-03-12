@@ -9,6 +9,7 @@
 class GLContext;
 class IxRead;
 class IxWrite;
+class BuiltMaterial;
 
 enum VertexChannel
 {
@@ -80,7 +81,7 @@ struct MapInfo
 struct Material
 {
     MapInfo maps[mk_endOfKinds];
-    Vec3 colors[mk_endOfKinds];
+    Rgba colors[mk_endOfKinds];
     float specPower;
 };
 
@@ -117,6 +118,8 @@ public:
     void setMaterials(Material const *materials, size_t count);
     void setBones(Bone const *bones, size_t count);
 
+    void buildMaterials();
+
     TriangleBatch const *batches(size_t *oCount);
     Material const *materials(size_t *oCount);
     Bone const *bones(size_t *oCount);
@@ -126,6 +129,7 @@ public:
 private:
     friend class ModelSceneNode;
     Model(GLContext *ctx);
+    void releaseMaterials();
 
     GLContext *ctx_;
     uint32_t vertices_;
@@ -134,6 +138,7 @@ private:
     uint32_t indexBits_;
     std::vector<VertexLayout> layout_;
     std::vector<TriangleBatch> batches_;
+    std::vector<BuiltMaterial *> builtMaterials_;
     std::vector<Material> materials_;
     std::vector<Bone> bones_;
 };

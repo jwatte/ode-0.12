@@ -12,6 +12,13 @@ struct Vec3
     float x, y, z;
 };
 
+struct Rgba
+{
+    Rgba() : r(1), g(1), b(1), a(1) {}
+    Rgba(float r_, float g_, float b_, float a_=1) : r(r_), g(g_), b(b_), a(a_) {}
+    float r, g, b, a;
+};
+
 struct Matrix
 {
     //  Using column vectors on the right

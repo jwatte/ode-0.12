@@ -2,7 +2,7 @@
 
 target {
     type obstacle
-    model crate1.bin
+    model raycar-unified.bin
     x 0
     y 0
     z 0
@@ -11,13 +11,13 @@ target {
 
 viewcam {
     type camera
-    x 0
-    y -20
-    z 5
+    x -2
+    y -5
+    z 1
     lx 0
     ly 0
     lz 1
-    fovy 90
+    fovy 70
     name maincam
 }
 

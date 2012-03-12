@@ -4,12 +4,25 @@
 
 #include "rc_math.h"
 
+struct Material;
+
+class BuiltMaterial
+{
+public:
+    virtual void release() = 0;
+    virtual void apply() = 0;
+};
+
 class GLContext
 {
 public:
     static GLContext *context();
     void realize(int width, int height);
     Vec3 size();
+    BuiltMaterial *buildMaterial(Material const &mtl);
+    void preClear();
+    void preRender();
+    void preSwap();
 private:
     int width_;
     int height_;

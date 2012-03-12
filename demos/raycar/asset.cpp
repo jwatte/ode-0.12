@@ -43,17 +43,39 @@ public:
     GLContext *ctx_;
 };
 
+class TextAsset
+{
+public:
+    std::string text_;
+    char const *text() const
+    {
+        return text_.c_str();
+    }
+    static TextAsset *readFromFile(IxRead *rd, GLContext *ctx, std::string const &dir, std::string const &file)
+    {
+        TextAsset *ret = new TextAsset();
+        char const *data = (char const *)rd->dataSegment(0, rd->size());
+        ret->text_.insert(ret->text_.end(), data, data + rd->size());
+        return ret;
+    }
+};
+
 AssetLoader<Model> alModel;
 AssetLoader<Bitmap> alBitmap;
+AssetLoader<TextAsset> alText;
 
 void Asset::clearAllAssets()
 {
     alModel.deleteAll();
+    alBitmap.deleteAll();
+    alText.deleteAll();
 }
 
 void Asset::init(GLContext *ctx)
 {
     alModel.init(ctx);
+    alBitmap.init(ctx);
+    alText.init(ctx);
 }
 
 Model *Asset::model(std::string const &name)
@@ -64,4 +86,9 @@ Model *Asset::model(std::string const &name)
 Bitmap *Asset::bitmap(std::string const &name)
 {
     return alBitmap.getOrLoad(name);
+}
+
+char const *Asset::text(std::string const &name)
+{
+    return alText.getOrLoad(name)->text();
 }

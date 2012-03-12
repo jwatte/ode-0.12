@@ -112,12 +112,12 @@ struct Mtl
     float Ni;
     float d;
     float Tr;
-    Vec3 Tf;
+    Rgba Tf;
     int illum;
-    Vec3 Ka;
-    Vec3 Kd;
-    Vec3 Ks;
-    Vec3 Ke;
+    Rgba Ka;
+    Rgba Kd;
+    Rgba Ks;
+    Rgba Ke;
     std::string map_Ka;
     std::string map_Kd;
     std::string map_Ks;
@@ -265,11 +265,11 @@ void convert(std::string const &str, int &i)
     }
 }
 
-void convert(std::string const &str, Vec3 &c)
+void convert(std::string const &str, Rgba &c)
 {
-    if (3 != sscanf_s(str.c_str(), " %f %f %f", &c.x, &c.y, &c.z))
+    if (3 > sscanf_s(str.c_str(), " %f %f %f %f", &c.r, &c.g, &c.b, &c.a))
     {
-        throw std::runtime_error(std::string("Bad format for obj material Vec3 value ") + str);
+        throw std::runtime_error(std::string("Bad format for obj material Rgba value ") + str);
     }
 }
 
@@ -464,7 +464,7 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj, float scale)
         }
         if (nRefs < 3)
         {
-            throw std::runtime_error("Bad obj file: face with less than 3 triangles");
+            throw std::runtime_error("Bad obj file: face with less than 3 vertices");
         }
     }
     else if (line[0] == 'v')
@@ -599,6 +599,7 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
             ++data;
         }
     }
+    //  now, normalize p, t, n triplets into individual vertex references
     VertexMerge<VertPtn> merge;
     for (std::vector<int>::iterator ptr(obj.faces.begin()), end(obj.faces.end());
         ptr != end;)
@@ -608,28 +609,31 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
         int ti = *ptr++;
         int ni = *ptr++;
         memcpy(&vptn.x, &obj.pos[pi * 3], 12);
-        memcpy(&vptn.tu, &obj.uv[ti * 2], 12);
+        memcpy(&vptn.tu, &obj.uv[ti * 2], 8);
         memcpy(&vptn.nx, &obj.norm[ni * 3], 12);
         merge.addVertex(vptn);
     }
     //  build batches
     std::vector<TriangleBatch> batches;
     VertexMerge<Material> materials;
+    TriangleBatch batch;
     for (size_t i = 0, n = obj.groupmtls.size(); i != n; ++i)
     {
-        TriangleBatch batch;
-        size_t end = obj.faces.size();
+        std::vector<uint32_t> const &idcs = merge.getIndices();
+        size_t end = idcs.size();
         if (i < n-1)
         {
-            end = obj.groupmtls[i+1].offset;
+            //  p, t, n makes 3 turn into one index
+            end = obj.groupmtls[i+1].offset / 3;
         }
-        batch.firstTriangle = obj.groupmtls[i].offset / 3;
+        //  p, t, n makes 3 turn into one index, divide by 3 to get triangles
+        batch.firstTriangle = obj.groupmtls[i].offset / 9;
         batch.numTriangles = end / 3 - batch.firstTriangle;
-        batch.minVertexIndex = obj.faces[obj.groupmtls[i].offset];
+        batch.minVertexIndex = idcs[batch.firstTriangle * 3];
         batch.maxVertexIndex = batch.minVertexIndex;
         for (size_t q = batch.firstTriangle * 3, qn = q + batch.numTriangles * 3; q != qn; ++q)
         {
-            uint32_t ix = obj.faces[q];
+            uint32_t ix = idcs[q];
             if (ix < batch.minVertexIndex)
             {
                 batch.minVertexIndex = ix;
@@ -657,6 +661,10 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
         convert_obj_material(obj.dir_, obj.mtls[mtlix], mm);
         batch.material = materials.addVertex(mm);
         batches.push_back(batch);
+    }
+    if (batch.firstTriangle + batch.numTriangles != merge.getIndices().size() / 3)
+    {
+        throw std::runtime_error("internal triangle count check failed for obj");
     }
     m->setMaterials(&materials.getVertices()[0], materials.getVertices().size());
     m->setBatches(&batches[0], batches.size());
@@ -715,6 +723,7 @@ void read_bin(IxRead *file, IModelData *m)
 
 Model::~Model()
 {
+    releaseMaterials();
     glDeleteBuffers(1, &vertices_);
     glDeleteBuffers(1, &indices_);
 }
@@ -734,6 +743,7 @@ Model *Model::readFromFile(IxRead *file, GLContext *ctx, std::string const &dir,
         {
             m = new Model(ctx);
             read_bin(file, m);
+            m->buildMaterials();
             return m;
         }
     }
@@ -830,6 +840,25 @@ Bone const *Model::boneNamed(std::string const &name)
     return 0;
 }
 
+void Model::buildMaterials()
+{
+    releaseMaterials();
+    for (std::vector<Material>::iterator ptr(materials_.begin()), end(materials_.end());
+        ptr != end; ++ptr)
+    {
+        builtMaterials_.push_back(ctx_->buildMaterial(*ptr));
+    }
+}
+
+void Model::releaseMaterials()
+{
+    for (std::vector<BuiltMaterial *>::iterator ptr(builtMaterials_.begin()), end(builtMaterials_.end());
+        ptr != end; ++ptr)
+    {
+        (*ptr)->release();
+    }
+}
+
 void Model::bind()
 {
     glBindBuffer(GL_ARRAY_BUFFER, vertices_);
@@ -871,9 +900,10 @@ glAssertError();
     for (std::vector<TriangleBatch>::iterator ptr(batches_.begin()), end(batches_.end());
         ptr != end; ++ptr)
     {
+        builtMaterials_[(*ptr).material]->apply();
         glDrawRangeElements(GL_TRIANGLES, (*ptr).minVertexIndex, (*ptr).maxVertexIndex, (*ptr).numTriangles * 3, 
             (indexBits_ == 32) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT,
-            (void *)((*ptr).firstTriangle * indexBits_ >> 3));
+            (void *)((*ptr).firstTriangle * 3 * indexBits_ >> 3));
 glAssertError();
     }
 }

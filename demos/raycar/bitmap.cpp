@@ -24,9 +24,44 @@ static void bitmap_init()
     inited = true;
 }
 
-static std::string dotTga("tga");
-static std::string dotPng("png");
-static std::string dotJpg("jpg");
+static struct {
+    std::string ext;
+    ILenum fmt;
+}
+supportedExts[] = {
+    { std::string("tga"), IL_TGA },
+    { std::string("jpg"), IL_JPG },
+    { std::string("png"), IL_PNG },
+    { std::string("gif"), IL_GIF },
+    { std::string("bmp"), IL_BMP },
+    { std::string("tif"), IL_TIF },
+    { std::string("jpeg"), IL_JPG },
+    { std::string("tiff"), IL_TIF },
+};
+
+bool is_supported_bitmap_ext(std::string const &ext)
+{
+    for (size_t i = 0, n = sizeof(supportedExts)/sizeof(supportedExts[0]); i != n; ++i)
+    {
+        if (supportedExts[i].ext == ext)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static ILenum get_bitmap_ext_fmt(std::string const &ext)
+{
+    for (size_t i = 0, n = sizeof(supportedExts)/sizeof(supportedExts[0]); i != n; ++i)
+    {
+        if (supportedExts[i].ext == ext)
+        {
+            return supportedExts[i].fmt;
+        }
+    }
+    throw std::runtime_error(std::string("Not a supported image format: ") + ext);
+}
 
 class ILBitmap : public Bitmap
 {
@@ -70,31 +105,25 @@ public:
 
 Bitmap *loadFromData(void const *data, size_t size, std::string const &fmt)
 {
+    ilGetError();
     ILenum ilFormat = IL_RAW;
-    if (fmt == dotTga)
-    {
-        ilFormat = IL_TGA;
-    }
-    else if (fmt == dotPng)
-    {
-        ilFormat = IL_PNG;
-    }
-    else if (fmt == dotJpg)
-    {
-        ilFormat = IL_JPG;
-    }
-    else
-    {
-        throw std::runtime_error(std::string("Unknown image format: ") + fmt);
-    }
+    ilFormat = get_bitmap_ext_fmt(fmt);
     bitmap_init();
     int img = ilGenImage();
     ilBindImage(img);
+    ilEnable(IL_ORIGIN_SET);
+    ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+    ilEnable(IL_CONV_PAL);
     ilLoadL(ilFormat, data, size);
-    if (ilGetError() != IL_NO_ERROR)
+    int err = ilGetError();
+    if (err != IL_NO_ERROR)
     {
         ilDeleteImage(img);
-        throw std::runtime_error(std::string("Error loading image format: ") + fmt);
+        char errStr[256];
+        _snprintf_s(errStr, 256, "Error 0x%x", err);
+        errStr[255] = 0;
+        throw std::runtime_error(std::string("Error loading image format: ") + fmt
+            + "\n" + errStr);
     }
     return new ILBitmap(img);
 }
@@ -129,5 +158,11 @@ void image_build(std::string const &src, std::string const &dst)
     std::wstring path;
     path.insert(path.end(), out.begin(), out.end());
     ilBindImage(bmp->img_);
+    ilEnable(IL_FILE_OVERWRITE);
     ilSave(IL_TGA, path.c_str());
+    int err = ilGetError();
+    if (err != IL_NO_ERROR)
+    {
+        throw std::runtime_error("Error saving file: " + dst);
+    }
 }

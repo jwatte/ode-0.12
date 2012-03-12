@@ -23,5 +23,6 @@ Bitmap *loadFromData(void const *data, size_t size, std::string const &fmt);
 Bitmap *loadFromPath(std::string const &path);
 
 void image_build(std::string const &src, std::string const &dst);
+bool is_supported_bitmap_ext(std::string const &ext);
 
 #endif  //  rc_bitmap_h
