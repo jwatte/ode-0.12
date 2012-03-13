@@ -73,6 +73,7 @@ enum MapChannel
 
 struct MapInfo
 {
+    MapInfo() { memset(this, 0, sizeof(*this)); }
     char name[64];
     MapKind kind;
     MapChannel channel;
@@ -80,6 +81,7 @@ struct MapInfo
 
 struct Material
 {
+    Material() { memset(this, 0, sizeof(*this)); }
     MapInfo maps[mk_endOfKinds];
     Rgba colors[mk_endOfKinds];
     float specPower;
@@ -87,6 +89,7 @@ struct Material
 
 struct Bone
 {
+    Bone() { memset(this, 0, sizeof(*this)); }
     char name[32];
     uint32_t parent;
     float xform[16];
@@ -126,6 +129,14 @@ public:
     Bone const *boneNamed(std::string const &name);
     void bind();
     void issue(Matrix const &modelview);
+
+    void const *vertices() const;
+    size_t vertexSize() const;
+    size_t vertexCount() const;
+    void const *indices() const;
+    size_t indexBits() const;
+    size_t indexCount() const;
+
 private:
     friend class ModelSceneNode;
     Model(GLContext *ctx);
@@ -136,6 +147,9 @@ private:
     uint32_t indices_;
     uint32_t vertexBytes_;
     uint32_t indexBits_;
+    uint32_t indexCount_;
+    std::vector<char> vertexData_;
+    std::vector<char> indexData_;
     std::vector<VertexLayout> layout_;
     std::vector<TriangleBatch> batches_;
     std::vector<BuiltMaterial *> builtMaterials_;

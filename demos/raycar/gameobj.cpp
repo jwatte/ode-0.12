@@ -6,6 +6,8 @@
 #include "rc_context.h"
 #include "rc_asset.h"
 #include "rc_scenegraph.h"
+#include "rc_car.h"
+#include "rc_obstacle.h"
 
 class Camera : public GameObject
 {
@@ -37,40 +39,6 @@ public:
     }
 };
 
-class Obstacle : public GameObject
-{
-public:
-    Obstacle(Config const &c) : GameObject(c)
-    {
-        modelName_ = c.string("model");
-        model_ = Asset::model(modelName_);
-        setPos(Vec3(c.numberf("x"), c.numberf("y"), c.numberf("z")));
-        name_ = c.string("name");
-    }
-    ~Obstacle()
-    {
-        delete model_;
-        model_ = 0;
-    }
-    void on_addToScene()
-    {
-        node_ = SceneGraph::addModel(name_, model_);
-    }
-    void on_removeFromScene()
-    {
-        delete node_;
-        node_ = 0;
-    }
-    void on_step()
-    {
-        node_->setPos(pos());
-    }
-    std::string modelName_;
-    Model *model_;
-    SceneNode *node_;
-    std::string name_;
-};
-
 template<typename T> class GameObjectTypeImpl : public GameObjectType
 {
 public:
@@ -82,6 +50,7 @@ public:
 
 GameObjectTypeImpl<Obstacle> gtObstacle;
 GameObjectTypeImpl<Camera> gtCamera;
+GameObjectTypeImpl<Car> gtCar;
 
 GameObjectType *GameObjectType::type(std::string const &type)
 {
@@ -92,6 +61,10 @@ GameObjectType *GameObjectType::type(std::string const &type)
     else if (type == "camera")
     {
         return &gtCamera;
+    }
+    else if (type == "car")
+    {
+        return &gtCar;
     }
     else
     {

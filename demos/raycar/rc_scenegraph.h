@@ -28,6 +28,7 @@ public:
     Vec3 pos() const;
     void setPos(Vec3 const &pos);
     Matrix const &transform() const;
+    void setTransform(Matrix const &m);
     std::string const &name() const;
 protected:
     friend class SceneGraph;

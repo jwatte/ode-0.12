@@ -403,6 +403,12 @@ void parse_obj_line(char const *data, char const *eol, Obj &obj, float scale)
         {
             ++pos;
         }
+        if ((obj.groupmtls.size() > 0 && obj.groupmtls.back().offset <= obj.faces.size() - 30000)
+            || (obj.groupmtls.size() == 0 && obj.faces.size() >= 30000))
+        {
+            //  no more than 10,000 triangles per batch
+            obj.groupMtlDirty = true;
+        }
         if (obj.groupMtlDirty)
         {
             obj.groupMtlDirty = false;
@@ -617,6 +623,11 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
     std::vector<TriangleBatch> batches;
     VertexMerge<Material> materials;
     TriangleBatch batch;
+    std::vector<Bone> bones;
+    Bone bone;
+    memcpy(bone.xform, &Matrix::identity.rows[0][0], sizeof(bone.xform));
+    bones.push_back(bone);
+    std::string lastBoneName("");
     for (size_t i = 0, n = obj.groupmtls.size(); i != n; ++i)
     {
         std::vector<uint32_t> const &idcs = merge.getIndices();
@@ -625,6 +636,16 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
         {
             //  p, t, n makes 3 turn into one index
             end = obj.groupmtls[i+1].offset / 3;
+        }
+        if (lastBoneName != obj.groupmtls[i].groupname)
+        {
+            lastBoneName = obj.groupmtls[i].groupname;
+            strncpy_s(bone.name, lastBoneName.c_str(), sizeof(bone.name));
+            bone.name[sizeof(bone.name)-1] = 0;
+            bone.parent = 0;
+            memcpy(bone.xform, Matrix::identity.rows[0], sizeof(bone.xform));
+            bones.push_back(bone);
+            batch.bone = bones.size() - 1;
         }
         //  p, t, n makes 3 turn into one index, divide by 3 to get triangles
         batch.firstTriangle = obj.groupmtls[i].offset / 9;
@@ -643,7 +664,6 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
                 batch.maxVertexIndex = ix;
             }
         }
-        batch.bone = 0;
     //  build materials
         uint32_t mtlix = obj.mtls.size();
         for (size_t m = 0, mn = obj.mtls.size(); m != mn; ++m)
@@ -666,6 +686,7 @@ void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir)
     {
         throw std::runtime_error("internal triangle count check failed for obj");
     }
+    m->setBones(&bones[0], bones.size());
     m->setMaterials(&materials.getVertices()[0], materials.getVertices().size());
     m->setBatches(&batches[0], batches.size());
     m->setIndexData(&merge.getIndices()[0], merge.getIndices().size() * 4, 32);
@@ -772,6 +793,8 @@ void Model::setVertexData(void const *data, size_t size, uint32_t vBytes)
     glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     glAssertError();
     vertexBytes_ = vBytes;
+    vertexData_.clear();
+    vertexData_.insert(vertexData_.end(), (char const *)data, (char const *)data + size);
 }
 
 void Model::setIndexData(void const *data, size_t size, uint32_t iBits)
@@ -786,6 +809,9 @@ void Model::setIndexData(void const *data, size_t size, uint32_t iBits)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     glAssertError();
     indexBits_ = iBits;
+    indexCount_ = size / (iBits >> 3);
+    indexData_.clear();
+    indexData_.insert(indexData_.end(), (char const *)data, (char const *)data + size);
 }
 
 void Model::setVertexLayout(VertexLayout const *layout, size_t count)
@@ -906,6 +932,46 @@ glAssertError();
             (void *)((*ptr).firstTriangle * 3 * indexBits_ >> 3));
 glAssertError();
     }
+}
+
+void const *Model::vertices() const
+{
+    if (vertexData_.empty())
+    {
+        return 0;
+    }
+    return &vertexData_[0];
+}
+
+size_t Model::vertexSize() const
+{
+    return vertexBytes_;
+}
+
+size_t Model::vertexCount() const
+{
+    return vertexData_.size() / vertexBytes_;
+}
+
+
+
+void const *Model::indices() const
+{
+    if (indexData_.empty())
+    {
+        return 0;
+    }
+    return &indexData_[0];
+}
+
+size_t Model::indexBits() const
+{
+    return indexBits_;
+}
+
+size_t Model::indexCount() const
+{
+    return indexCount_;
 }
 
 Model::Model(GLContext *ctx)

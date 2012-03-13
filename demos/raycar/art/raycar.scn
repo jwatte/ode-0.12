@@ -1,23 +1,41 @@
 # raycar.scn
 
-target {
-    type obstacle
+car {
+    type car
     model raycar-unified.bin
+    x -3
+    y -3
+    z 1
+    name car
+}
+
+track {
+    type obstacle
+    model track1.bin
     x 0
     y 0
     z 0
-    name derp
+    name track
 }
 
-viewcam {
-    type camera
-    x -2
-    y -5
+crate {
+    type obstacle
+    model crate1.bin
+    x -6
+    y -1
     z 1
+    name crate
+}
+
+maincam {
+    type camera
+    x -10
+    y -5
+    z 10
     lx 0
     ly 0
     lz 1
-    fovy 70
+    fovy 60
     name maincam
 }
 

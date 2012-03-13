@@ -33,12 +33,6 @@
     <ClCompile Include="ixfile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="context.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gameobj.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="asset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -52,6 +46,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="bitmap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="obstacle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="car.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="context.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gameobj.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -96,6 +105,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rc_bitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_car.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_ode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_obstacle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -93,6 +93,11 @@ public:
         ilBindImage(img_);
         return ilGetInteger(IL_IMAGE_BYTES_PER_PIXEL) * width_;
     }
+    size_t bytesPerPixel()
+    {
+        ilBindImage(img_);
+        return ilGetInteger(IL_IMAGE_BYTES_PER_PIXEL);
+    }
     size_t width()
     {
         return width_;

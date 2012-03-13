@@ -1,0 +1,16 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 12.03.2012 20:44:53
+
+newmtl grass
+	Ns 14.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.83137 0.83137 0.83137
+	Kd 0.83137 0.83137 0.83137
+	Ks 0.10800 0.10800 0.10800
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/grass.tga
+	map_Kd /code/ode-0.12/demos/raycar/art/grass.tga

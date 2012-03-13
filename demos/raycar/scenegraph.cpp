@@ -88,14 +88,17 @@ Vec3 SceneNode::pos() const
 
 void SceneNode::setPos(Vec3 const &pos)
 {
-    xform_.rows[0][3] = pos.x;
-    xform_.rows[1][3] = pos.y;
-    xform_.rows[2][3] = pos.z;
+    xform_.setTranslation(pos);
 }
 
 Matrix const &SceneNode::transform() const
 {
     return xform_;
+}
+
+void SceneNode::setTransform(Matrix const &m)
+{
+    xform_ = m;
 }
 
 std::string const &SceneNode::name() const
@@ -140,7 +143,7 @@ void SceneGraph::present(SceneNode *camera)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    Vec3 pos(1, 2, 3);
+    Vec3 pos(-1, -2, 3);
     normalize(pos);
     Matrix m(ci.mmat_);
     m.setTranslation(Vec3(0, 0, 0));
@@ -161,7 +164,7 @@ void SceneGraph::present(SceneNode *camera)
     Vec3 sz(ctx_->size());
     float fy = tanf(ci.fovY / 360.0f * (float)3.1415927f);
     float fx = fy * sz.x / sz.y;
-    glFrustum(-fx, fx, -fy, fy, 0.9f, 100000.0f);
+    glFrustum(-fx, fx, -fy, fy, 0.9f, 10000.0f);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glAssertError();

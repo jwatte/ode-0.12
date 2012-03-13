@@ -64,7 +64,7 @@ static GLuint loadTexture(std::string const &name, GLuint def)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
     glAssertError();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bm->width(), bm->height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, bm->bits());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bm->width(), bm->height(), 0, bm->bytesPerPixel() == 4 ? GL_BGRA : GL_BGR, GL_UNSIGNED_BYTE, bm->bits());
     glAssertError();
     glGenerateMipmap(GL_TEXTURE_2D);
     glAssertError();

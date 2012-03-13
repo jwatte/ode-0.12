@@ -4,6 +4,7 @@
 #include "rc_gameobj.h"
 #include "rc_config.h"
 #include "rc_scenegraph.h"
+#include "rc_ode.h"
 
 #include <list>
 #include <string>
@@ -22,6 +23,7 @@ void clearScene()
     {
         deleteSceneObject(*ptr);
     }
+    physicsClear();
 }
 
 void assertInScene(GameObject *obj, bool inScene)
@@ -231,6 +233,7 @@ void parseScene(char const *data, size_t size)
 
 void loadScene(char const *name)
 {
+    physicsCreate();
     IxRead *r = IxRead::readFromFile(name);
     parseScene((char const *)r->dataSegment(0, r->size()), r->size());
     delete r;
@@ -238,6 +241,7 @@ void loadScene(char const *name)
 
 void stepScene()
 {
+    physicsStep();
     for (std::set<GameObject *>::iterator ptr(sceneObjects.begin()), end(sceneObjects.end());
         ptr != end; ++ptr)
     {

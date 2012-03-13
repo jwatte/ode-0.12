@@ -1,8 +1,9 @@
 
 ALL_CONTENT := \
 	content/raycar-unified.bin \
-	content/raycar.scn \
 	content/crate1.bin \
+	content/track1.bin \
+	content/raycar.scn \
 	content/default-vs.glsl \
 	content/default-fs.glsl
 

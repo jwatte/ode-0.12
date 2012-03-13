@@ -13,6 +13,7 @@ public:
     virtual void const *bits() = 0;
     virtual size_t size() = 0;
     virtual size_t rowBytes() = 0;
+    virtual size_t bytesPerPixel() = 0;
     virtual size_t width() = 0;
     virtual size_t height() = 0;
     virtual ~Bitmap() {}
