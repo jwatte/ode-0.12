@@ -202,10 +202,12 @@
     <ClCompile Include="bitmap.cpp" />
     <ClCompile Include="car.cpp" />
     <ClCompile Include="context.cpp" />
+    <ClCompile Include="debug.cpp" />
     <ClCompile Include="gameobj.cpp" />
     <ClCompile Include="input.cpp" />
     <ClCompile Include="ixfile.cpp" />
     <ClCompile Include="model.cpp" />
+    <ClCompile Include="obj.cpp" />
     <ClCompile Include="obstacle.cpp" />
     <ClCompile Include="ode.cpp" />
     <ClCompile Include="raycar.cpp" />
@@ -221,11 +223,13 @@
     <ClInclude Include="rc_car.h" />
     <ClInclude Include="rc_config.h" />
     <ClInclude Include="rc_context.h" />
+    <ClInclude Include="rc_debug.h" />
     <ClInclude Include="rc_gameobj.h" />
     <ClInclude Include="rc_input.h" />
     <ClInclude Include="rc_ixfile.h" />
     <ClInclude Include="rc_math.h" />
     <ClInclude Include="rc_model.h" />
+    <ClInclude Include="rc_obj.h" />
     <ClInclude Include="rc_obstacle.h" />
     <ClInclude Include="rc_ode.h" />
     <ClInclude Include="rc_reference.h" />

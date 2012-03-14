@@ -1,6 +1,7 @@
 
 #include "rc_ode.h"
 #include "rc_math.h"
+#include "rc_debug.h"
 
 #include <ode/ode.h>
 
@@ -85,6 +86,7 @@ static void nearCallback(void *, dGeomID o1, dGeomID o2)
             cg[i].surface.mode = dContactApprox1;
             dJointID jid = dJointCreateContact(gWorld, gJointGroup, &cg[i]);
             dJointAttach(jid, dGeomGetBody(o1), dGeomGetBody(o2));
+            addDebugLine(Vec3(cg[i].geom.pos), Vec3(cg[i].geom.normal), Rgba(1, 0, 0, 1));
         }
     }
 }

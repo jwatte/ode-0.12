@@ -205,9 +205,12 @@ SceneNode *SceneGraph::nodeNamed(std::string const &findName)
     return NULL;
 }
 
+Matrix SceneGraph::getCameraModelView(SceneNode *node)
+{
+    return static_cast<CameraSceneNode *>(node)->cam_->mmat_;
+}
 
 void CameraInfo::getModelView(SceneNode const *node, Matrix *omv) const
 {
-    *omv = node->transform();
-    multiply(mmat_, *omv);
+    multiply(mmat_, node != 0 ? node->transform() : Matrix::identity, *omv);
 }

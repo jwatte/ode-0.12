@@ -49,11 +49,14 @@ void subFrom(Vec3 &left, Vec3 const &right);
 void scale(Vec3 &io, float l);
 void cross(Vec3 &out, Vec3 const &left, Vec3 const &right);
 void normalize(Vec3 &n);
+void minimize(Vec3 &io, Vec3 const &i);
+void maximize(Vec3 &io, Vec3 const &i);
+
 float dot(Vec3 const &a, Vec3 const &b);
 float length(Vec3 const &l);
 float lengthSquared(Vec3 const &l);
 
-void multiply(Matrix const &left, Matrix &right);
+void multiply(Matrix const &left, Matrix const &right, Matrix &result);
 void multiply(Matrix const &left, Vec3 &right);
 
 #endif  //  rc_math_h

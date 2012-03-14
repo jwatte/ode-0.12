@@ -5,6 +5,7 @@
 #include "rc_config.h"
 #include "rc_scenegraph.h"
 #include "rc_ode.h"
+#include "rc_debug.h"
 
 #include <list>
 #include <string>
@@ -241,6 +242,7 @@ void loadScene(char const *name)
 
 void stepScene()
 {
+    clearDebugLines();
     physicsStep();
     for (std::set<GameObject *>::iterator ptr(sceneObjects.begin()), end(sceneObjects.end());
         ptr != end; ++ptr)
@@ -251,5 +253,7 @@ void stepScene()
 
 void renderScene()
 {
-    SceneGraph::present(SceneGraph::nodeNamed("maincam"));
+    SceneNode *sn = SceneGraph::nodeNamed("maincam");
+    SceneGraph::present(sn);
+    drawDebugLines(sn);
 }

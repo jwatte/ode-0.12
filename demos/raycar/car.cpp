@@ -29,13 +29,21 @@ void Car::on_addToScene()
 
     body_ = dBodyCreate(gWorld);
     dMass m;
-    dMassSetBoxTotal(&m, 100, 2, 6, 1);
+    Vec3 lower = model_->lowerBound();
+    Vec3 upper = model_->upperBound();
+    Vec3 offset(upper);
+    Vec3 size(upper);
+    addTo(offset, lower);
+    subFrom(size, lower);
+    scale(offset, 0.5f);
+    dMassSetBoxTotal(&m, 100, size.x, size.y, size.z);
     dBodySetMass(body_, &m);
     dBodySetAutoDisableFlag(body_, false);
     dBodySetData(body_, (GameObject *)this);
-    chassis_ = dCreateBox(gDynamicSpace, 2, 6, 1);
+    chassis_ = dCreateBox(gDynamicSpace, size.x, size.y, size.z);
     dGeomSetData(chassis_, (GameObject *)this);
     dGeomSetBody(chassis_, body_);
+    dGeomSetOffsetPosition(chassis_, offset.x, offset.y, offset.z);
     Vec3 p(pos());
     dBodySetPosition(body_, p.x, p.y, p.z);
 }

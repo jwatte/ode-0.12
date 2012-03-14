@@ -288,3 +288,25 @@ BuiltMaterial *GLContext::buildMaterial(Material const &mtl)
     ret->configure(mtl);
     return ret;
 }
+
+void GLContext::beginCustom(Matrix const &modelView)
+{
+    glNormal3f(0, 0, 1);
+    glTexCoord2f(0.5, 0.5);
+    glColor4f(1, 1, 1, 1);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, defaultAmbientMap);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, defaultDiffuseMap);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, defaultSpecularMap);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, defaultEmissiveMap);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadTransposeMatrixf((float *)modelView.rows);
+glAssertError();
+}
+
+void GLContext::endCustom()
+{
+}

@@ -21,6 +21,7 @@ private:
     std::string name_;
     dBodyID body_;
     dGeomID chassis_;
+    Vec3 offset_;
 };
 
 #endif

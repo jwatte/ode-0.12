@@ -77,6 +77,20 @@ void normalize(Vec3 &n)
     n.z *= l;
 }
 
+void minimize(Vec3 &io, Vec3 const &i)
+{
+    io.x = std::min(io.x, i.x);
+    io.y = std::min(io.y, i.y);
+    io.z = std::min(io.z, i.z);
+}
+
+void maximize(Vec3 &io, Vec3 const &i)
+{
+    io.x = std::max(io.x, i.x);
+    io.y = std::max(io.y, i.y);
+    io.z = std::max(io.z, i.z);
+}
+
 float dot(Vec3 const &a, Vec3 const &b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
@@ -92,7 +106,7 @@ float lengthSquared(Vec3 const &l)
     return dot(l, l);
 }
 
-void multiply(Matrix const &left, Matrix &right)
+void multiply(Matrix const &left, Matrix const &right, Matrix &result)
 {
     //  be careful to not write to a possibly aliased location
     Matrix out;
@@ -108,7 +122,7 @@ void multiply(Matrix const &left, Matrix &right)
             out.rows[r][c] = v;
         }
     }
-    right = out;
+    result = out;
 }
 
 void multiply(Matrix const &left, Vec3 &right)

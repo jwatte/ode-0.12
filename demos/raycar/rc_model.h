@@ -128,7 +128,7 @@ public:
     Bone const *bones(size_t *oCount);
     Bone const *boneNamed(std::string const &name);
     void bind();
-    void issue(Matrix const &modelview);
+    void issue(Matrix const &modelview, Bone const *bones = 0);
 
     void const *vertices() const;
     size_t vertexSize() const;
@@ -136,11 +136,14 @@ public:
     void const *indices() const;
     size_t indexBits() const;
     size_t indexCount() const;
+    Vec3 lowerBound() const;
+    Vec3 upperBound() const;
 
 private:
     friend class ModelSceneNode;
     Model(GLContext *ctx);
     void releaseMaterials();
+    void applyBoneTransform(Bone const *bones, size_t bix, Matrix &m) const;
 
     GLContext *ctx_;
     uint32_t vertices_;
@@ -148,6 +151,8 @@ private:
     uint32_t vertexBytes_;
     uint32_t indexBits_;
     uint32_t indexCount_;
+    Vec3 lower_;
+    Vec3 upper_;
     std::vector<char> vertexData_;
     std::vector<char> indexData_;
     std::vector<VertexLayout> layout_;

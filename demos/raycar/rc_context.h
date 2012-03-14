@@ -20,9 +20,13 @@ public:
     void realize(int width, int height);
     Vec3 size();
     BuiltMaterial *buildMaterial(Material const &mtl);
+
     void preClear();
     void preRender();
     void preSwap();
+
+    void beginCustom(Matrix const &modelView);
+    void endCustom();
 private:
     int width_;
     int height_;

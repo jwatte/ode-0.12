@@ -18,6 +18,7 @@ public:
     static SceneNode *addCamera(std::string const &name, CameraInfo *cam);
     static void present(SceneNode *camera);
     static SceneNode *nodeNamed(std::string const &name);
+    static Matrix getCameraModelView(SceneNode *node);
 };
 
 class SceneNode
