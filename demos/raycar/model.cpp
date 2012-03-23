@@ -149,15 +149,6 @@ void Model::setVertexData(void const *data, size_t size, uint32_t vBytes)
     vertexBytes_ = vBytes;
     vertexData_.clear();
     vertexData_.insert(vertexData_.end(), (char const *)data, (char const *)data + size);
-    Vec3 lower = *(Vec3 const *)data;
-    Vec3 upper = *(Vec3 const *)data;
-    for (char const *ptr = (char const *)data; ptr != (char const *)data + size; ptr += vBytes)
-    {
-        minimize(lower, *(Vec3 const *)ptr);
-        maximize(upper, *(Vec3 const *)ptr);
-    }
-    lower_ = lower;
-    upper_ = upper;
 }
 
 void Model::setIndexData(void const *data, size_t size, uint32_t iBits)
@@ -192,9 +183,36 @@ void Model::setMaterials(Material const *materials, size_t count)
     materials_.swap(std::vector<Material>(materials, materials + count));
 }
 
+static Vec3 matrixTranslation(float const *m)
+{
+    return Vec3(m[3], m[7], m[11]);
+}
+
 void Model::setBones(Bone const *bones, size_t count)
 {
     bones_.swap(std::vector<Bone>(bones, bones + count));
+    bool first = true;
+    for (size_t i = 0; i != count; ++i)
+    {
+        if (!equals(bones[i].upperBound, bones[i].lowerBound))
+        {
+            Vec3 lob(bones[i].lowerBound);
+            addTo(lob, matrixTranslation(bones[i].xform));
+            Vec3 ub(bones[i].upperBound);
+            addTo(ub, matrixTranslation(bones[i].xform));
+            if (first)
+            {
+                lower_ = lob;
+                upper_ = ub;
+                first = false;
+            }
+            else
+            {
+                minimize(lower_, lob);
+                maximize(upper_, ub);
+            }
+        }
+    }
 }
 
 

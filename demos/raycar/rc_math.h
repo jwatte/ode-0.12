@@ -35,12 +35,42 @@ struct Matrix
         }
         memcpy(rows[r], &d, sizeof(d));
     }
+    inline Vec3 getRow(size_t r) const
+    {
+        if (r > 3)
+        {
+            throw std::runtime_error("Invalid row in getRow()");
+        }
+        return Vec3(rows[r]);
+    }
+    inline void setColumn(size_t c, Vec3 const &v)
+    {
+        if (c > 3)
+        {
+            throw std::runtime_error("Invalid column in setColumn()");
+        }
+        rows[0][c] = v.x;
+        rows[1][c] = v.y;
+        rows[2][c] = v.z;
+    }
+    inline Vec3 getColumn(size_t c) const
+    {
+        if (c > 3)
+        {
+            throw std::runtime_error("Invalid column in getColumn()");
+        }
+        return Vec3(rows[0][c], rows[1][c], rows[2][c]);
+    }
     inline void setTranslation(Vec3 const &x)
     {
         rows[0][3] = x.x;
         rows[1][3] = x.y;
         rows[2][3] = x.z;
         rows[3][3] = 1;
+    }
+    inline Vec3 translation() const
+    {
+        return Vec3(rows[0][3], rows[1][3], rows[2][3]);
     }
 };
 
@@ -55,6 +85,7 @@ void maximize(Vec3 &io, Vec3 const &i);
 float dot(Vec3 const &a, Vec3 const &b);
 float length(Vec3 const &l);
 float lengthSquared(Vec3 const &l);
+bool equals(Vec3 const &left, Vec3 const &right);
 
 void multiply(Matrix const &left, Matrix const &right, Matrix &result);
 void multiply(Matrix const &left, Vec3 &right);

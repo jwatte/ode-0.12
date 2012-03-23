@@ -9,6 +9,7 @@ class Model;
 class Camera;
 class SceneNode;
 struct CameraInfo;
+struct Bone;
 
 class SceneGraph
 {
@@ -30,6 +31,7 @@ public:
     void setPos(Vec3 const &pos);
     Matrix const &transform() const;
     void setTransform(Matrix const &m);
+    void setBones(Bone const *bones, size_t cnt);
     std::string const &name() const;
 protected:
     friend class SceneGraph;
@@ -37,6 +39,8 @@ protected:
     virtual void render(CameraInfo const &cam) = 0;
     Matrix xform_;
     std::string name_;
+    Bone const *bones_;
+    size_t boneCount_;
 };
 
 struct CameraInfo

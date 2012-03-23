@@ -106,6 +106,11 @@ float lengthSquared(Vec3 const &l)
     return dot(l, l);
 }
 
+bool equals(Vec3 const &left, Vec3 const &right)
+{
+    return left.x == right.x && left.y == right.y && left.z == right.z;
+}
+
 void multiply(Matrix const &left, Matrix const &right, Matrix &result)
 {
     //  be careful to not write to a possibly aliased location

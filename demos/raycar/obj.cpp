@@ -658,6 +658,7 @@ void read_obj(IxRead *file, IModelData *m, float vScale, std::string const &dir)
                 minimize(vMin, Vec3(&vvp->x));
                 maximize(vMax, Vec3(&vvp->x));
             }
+            Vec3 lob(vMin), ub(vMax);
             addTo(vMin, vMax);
             scale(vMin, -0.5f);
             for (VertPtn *vvp = &vertexData[0] + vertexData.size() - nv, *evp = vvp + nv; vvp != evp; ++vvp)
@@ -666,6 +667,8 @@ void read_obj(IxRead *file, IModelData *m, float vScale, std::string const &dir)
             }
             scale(vMin, -1);
             (*(Matrix *)bones[bix].xform).setTranslation(vMin);
+            bones[bix].lowerBound = lob;
+            bones[bix].upperBound = ub;
             vOffset += nv;
             iOffset += ni;
         }
@@ -679,6 +682,10 @@ void read_obj(IxRead *file, IModelData *m, float vScale, std::string const &dir)
             }
         }
         ++bix;
+    }
+    for (std::vector<Bone>::iterator ptr(bones.begin()), end(bones.end()); ptr != end; ++ptr)
+    {
+        std::transform((*ptr).name, &(*ptr).name[strlen((*ptr).name)], (*ptr).name, tolower);
     }
     m->setBones(&bones[0], bones.size());
     m->setMaterials(&materials.getVertices()[0], materials.getVertices().size());

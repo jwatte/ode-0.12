@@ -93,6 +93,8 @@ struct Bone
     char name[32];
     uint32_t parent;
     float xform[16];
+    Vec3 lowerBound;
+    Vec3 upperBound;
 };
 
 class IModelData

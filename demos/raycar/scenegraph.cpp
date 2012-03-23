@@ -31,7 +31,16 @@ public:
         cam.getModelView(this, &m);
         glLoadTransposeMatrixf(&m.rows[0][0]);
         mdl_->bind();
-        mdl_->issue(m);
+        if (bones_ != NULL)
+        {
+            size_t sz = 0;
+            mdl_->bones(&sz);
+            if (sz != boneCount_)
+            {
+                throw std::runtime_error("ModelSceneNode configured with wrong boneCount_");
+            }
+        }
+        mdl_->issue(m, bones_);
     }
 };
 
@@ -72,7 +81,9 @@ public:
 
 SceneNode::SceneNode(std::string const &name) :
     xform_(Matrix::identity),
-    name_(name)
+    name_(name),
+    bones_(0),
+    boneCount_(0)
 {
 }
 
@@ -99,6 +110,12 @@ Matrix const &SceneNode::transform() const
 void SceneNode::setTransform(Matrix const &m)
 {
     xform_ = m;
+}
+
+void SceneNode::setBones(::Bone const *bones, size_t count)
+{
+    bones_ = bones;
+    boneCount_ = count;
 }
 
 std::string const &SceneNode::name() const
