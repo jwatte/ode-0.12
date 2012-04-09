@@ -10,6 +10,7 @@ struct Vec3
     Vec3() : x(0), y(0), z(0) {}
     Vec3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
     Vec3(float const *ptr) : x(ptr[0]), y(ptr[1]), z(ptr[2]) {}
+    Vec3 operator-() const { return Vec3(-x, -y, -z); }
     float x, y, z;
 };
 
@@ -22,10 +23,10 @@ struct Rgba
 
 struct Matrix
 {
-    //  Using column vectors on the right
-    Matrix() { memset(rows, 0, sizeof(rows)); }
-    Matrix(float const *idata) { memcpy(rows, idata, sizeof(rows)); }
     static const Matrix identity;
+    //  Using column vectors on the right
+    Matrix() { memcpy(rows, identity.rows, sizeof(rows)); }
+    Matrix(float const *idata) { memcpy(rows, idata, sizeof(rows)); }
     float rows[4][4];   //  NOT stored in GL order!
     inline void setRow(size_t r, Vec3 const &d)
     {
@@ -35,6 +36,14 @@ struct Matrix
         }
         memcpy(rows[r], &d, sizeof(d));
     }
+
+    inline Vec3 left() const { return getColumn(0); }
+    inline Vec3 right() const { return -getColumn(0); }
+    inline Vec3 backward() const { return getColumn(1); }
+    inline Vec3 forward() const { return -getColumn(1); }
+    inline Vec3 up() const { return getColumn(2); }
+    inline Vec3 down() const { return -getColumn(2); }
+
     inline Vec3 getRow(size_t r) const
     {
         if (r > 3)

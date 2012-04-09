@@ -26,6 +26,8 @@ void Obstacle::on_addToScene()
     node_ = SceneGraph::addModel(name_, model_);
     //  todo: move trimesh data id into Model proper to share it
     tmd_ = dGeomTriMeshDataCreate();
+    //  todo: transform trimesh data by bones!
+    ...
     dGeomTriMeshDataBuildSingle(tmd_, model_->vertices(), model_->vertexSize(), 
         model_->vertexCount(), model_->indices(), model_->indexCount(), 12);
     geom_ = dCreateTriMesh(gStaticSpace, tmd_, 0, 0, 0);

@@ -3,15 +3,20 @@
 car {
     type car
     model raycar-unified.bin
-    x -35
-    y 25
-    z 1
+    x -50
+    y 50
+    z 5
     name car
+    topSpeed 40
+    steerDamping 0.75
+    driveFriction 2
+    steerFriction 2
+    sideSlip 0.0001
 }
 
 track {
     type obstacle
-    model track1.bin
+    model oval-track.bin
     x 0
     y 0
     z 0
@@ -21,20 +26,46 @@ track {
 crate {
     type obstacle
     model crate1.bin
-    x -6
-    y -1
-    z 1
+    x 0
+    y 100
+    z 0.5
     name crate
+}
+crate2 {
+    type obstacle
+    model crate1.bin
+    x 1
+    y 100
+    z 1.5
+    name crate2
+}
+crate3 {
+    type obstacle
+    model crate1.bin
+    x 2
+    y 100
+    z 2.5
+    name crate3
 }
 
 maincam {
     type followcamera
     x -3
     y 11
-    z 3
+    z 10
     fovy 60
+    height 1.7
+    targetheight 1.4
     name maincam
     target car
-    distance 10
+    distance 7
 }
 
+skybox {
+    type skybox
+    model lostvalley-skybox.bin
+    name skybox
+    x 0
+    y 0
+    z 0
+}

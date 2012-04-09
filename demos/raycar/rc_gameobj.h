@@ -22,7 +22,7 @@ public:
     virtual void on_removeFromScene();
     virtual void on_step();
     Vec3 const &pos() const;
-    void setPos(Vec3 const &pos);
+    virtual void setPos(Vec3 const &pos);
 protected:
     friend void deleteSceneObject(GameObject *obj);
     GameObject(Config const &cfg);

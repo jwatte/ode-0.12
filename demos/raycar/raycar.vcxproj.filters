@@ -69,6 +69,9 @@
     <ClCompile Include="obj.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="skybox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rc_input.h">
@@ -126,6 +129,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="rc_obj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rc_skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

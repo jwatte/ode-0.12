@@ -31,15 +31,16 @@ static GLuint defaultAmbientMap;
 static GLuint defaultDiffuseMap;
 static GLuint defaultSpecularMap;
 static GLuint defaultEmissiveMap;
+static GLuint defaultCustomMap;
 
-static GLuint vShader;
-static GLuint fShader;
 static GLuint gProgram;
+static GLuint gCustomProgram;
 
 static GLuint uniformAmbientMap;
 static GLuint uniformDiffuseMap;
 static GLuint uniformSpecularMap;
 static GLuint uniformEmissiveMap;
+static GLuint customMap;
 
 
 static GLuint loadTexture(std::string const &name, GLuint def)
@@ -175,23 +176,19 @@ static void initDefaultMap(GLuint &map, unsigned int color)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, &bytes);
 }
 
-static void compileShaders()
+static GLint compileShaderNames(char const *vsName, char const *fsName)
 {
     static char buf[4096];
-    if (gProgram)
-    {
-        return;
-    }
-    char const *vs = Asset::text("default-vs.glsl");
-    char const *fs = Asset::text("default-fs.glsl");
+    char const *vs = Asset::text(vsName);
+    char const *fs = Asset::text(fsName);
 
-    vShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint vShader = glCreateShader(GL_VERTEX_SHADER);
     glAssertError();
-    fShader = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint fShader = glCreateShader(GL_FRAGMENT_SHADER);
     glAssertError();
-    gProgram = glCreateProgram();
-    glAttachShader(gProgram, vShader);
-    glAttachShader(gProgram, fShader);
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vShader);
+    glAttachShader(program, fShader);
     glAssertError();
 
     GLint one = strlen(vs);
@@ -204,7 +201,7 @@ static void compileShaders()
     {
         GLsizei len = 0;
         glGetShaderInfoLog(vShader, 4096, &len, buf);
-        throw std::runtime_error(std::string("GLSL default-vs.glsl vertex compile error:\n") +
+        throw std::runtime_error(std::string("GLSL ") + vsName + " vertex compile error:\n" +
             std::string(&buf[0], &buf[len]));
     }
     glAssertError();
@@ -218,22 +215,34 @@ static void compileShaders()
     {
         GLsizei len = 0;
         glGetShaderInfoLog(fShader, 4096, &len, buf);
-        throw std::runtime_error(std::string("GLSL default-fs.glsl fragment compile error:\n") +
+        throw std::runtime_error(std::string("GLSL ") + fsName + "fragment compile error:\n" +
             std::string(&buf[0], &buf[len]));
     }
     glAssertError();
 
-    glLinkProgram(gProgram);
-    glGetProgramiv(gProgram, GL_LINK_STATUS, &iv);
+    glLinkProgram(program);
+    glGetProgramiv(program, GL_LINK_STATUS, &iv);
     if (iv != GL_TRUE)
     {
         GLsizei len = 0;
-        glGetProgramInfoLog(gProgram, 4096, &len, buf);
+        glGetProgramInfoLog(program, 4096, &len, buf);
         throw std::runtime_error(std::string("GLSL program link error:\n") +
+            vsName + " " + fsName + "\n" +
             std::string(&buf[0], &buf[len]));
     }
     glAssertError();
 
+    return program;
+}
+
+static void compileShaders()
+{
+    if (gProgram)
+    {
+        return;
+    }
+
+    gProgram = compileShaderNames("default-vs.glsl", "default-fs.glsl");
     uniformAmbientMap = glGetUniformLocation(gProgram, "texAmbient");
     glAssertError();
     uniformDiffuseMap = glGetUniformLocation(gProgram, "texDiffuse");
@@ -241,6 +250,10 @@ static void compileShaders()
     uniformSpecularMap = glGetUniformLocation(gProgram, "texSpecular");
     glAssertError();
     uniformEmissiveMap = glGetUniformLocation(gProgram, "texEmissive");
+    glAssertError();
+
+    gCustomProgram = compileShaderNames("custom-vs.glsl", "custom-fs.glsl");
+    customMap = glGetUniformLocation(gCustomProgram, "texCustom");
     glAssertError();
 }
 
@@ -259,6 +272,7 @@ void GLContext::realize(int width, int height)
     initDefaultMap(defaultDiffuseMap, 0x808080);
     initDefaultMap(defaultSpecularMap, 0x808080);
     initDefaultMap(defaultEmissiveMap, 0x000000);
+    initDefaultMap(defaultCustomMap, 0xffffff);
     compileShaders();
 }
 
@@ -289,19 +303,14 @@ BuiltMaterial *GLContext::buildMaterial(Material const &mtl)
     return ret;
 }
 
-void GLContext::beginCustom(Matrix const &modelView)
+void GLContext::beginCustom(Matrix const &modelView, int tex)
 {
+    glUseProgram(gCustomProgram);
     glNormal3f(0, 0, 1);
     glTexCoord2f(0.5, 0.5);
     glColor4f(1, 1, 1, 1);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, defaultAmbientMap);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, defaultDiffuseMap);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, defaultSpecularMap);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, defaultEmissiveMap);
+    glActiveTexture(GL_TEXTURE0 + customMap);
+    glBindTexture(GL_TEXTURE_2D, tex ? tex : defaultCustomMap);
     glMatrixMode(GL_MODELVIEW);
     glLoadTransposeMatrixf((float *)modelView.rows);
 glAssertError();

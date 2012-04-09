@@ -107,7 +107,7 @@ static void nearCallback(void *, dGeomID o1, dGeomID o2)
                     continue;
             dJointID jid = dJointCreateContact(gWorld, gJointGroup, &cg[i]);
             dJointAttach(jid, dGeomGetBody(o1), dGeomGetBody(o2));
-            addDebugLine(Vec3(cg[i].geom.pos), Vec3(cg[i].geom.normal), Rgba(1, 0, 0, 1));
+            addDebugLine(Vec3(cg[i].geom.pos), Vec3(cg[i].geom.normal), Rgba(1, 1, 0, 1));
         }
     }
 }

@@ -24,8 +24,6 @@ void addDebugLine(Vec3 const &from, Vec3 const &dir, Rgba const &color)
 void drawDebugLines(SceneNode *camera)
 {
     GLContext::context()->beginCustom(SceneGraph::getCameraModelView(camera));
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
     glBegin(GL_LINES);
     for (std::list<DebugLine>::iterator ptr(debugLines.begin()), end(debugLines.end());
         ptr != end; ++ptr)
@@ -37,7 +35,26 @@ void drawDebugLines(SceneNode *camera)
         glVertex3fv(&pos.x);
     }
     glEnd();
-    glDisable(GL_COLOR_MATERIAL);
+glAssertError();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
+    glBegin(GL_LINES);
+    for (std::list<DebugLine>::iterator ptr(debugLines.begin()), end(debugLines.end());
+        ptr != end; ++ptr)
+    {
+        float f[4];
+        memcpy(f, &(*ptr).color_.r, 4 * sizeof(float));
+        f[3] = 0.5f;
+        glColor4fv(f);
+        Vec3 pos((*ptr).from_);
+        glVertex3fv(&pos.x);
+        addTo(pos, (*ptr).dir_);
+        glVertex3fv(&pos.x);
+    }
+    glEnd();
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
 glAssertError();
     GLContext::context()->endCustom();
 }

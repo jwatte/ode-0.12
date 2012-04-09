@@ -20,10 +20,13 @@ public:
     virtual void on_addToScene();
     virtual void on_removeFromScene();
     virtual void on_step();
+    void setPos(Vec3 const &pos);
+    void setTransform(Matrix const &m);
+    Matrix const &transform() const { return transform_; }
 
 private:
     friend class CarBody;
-    friend class CarGeom;
+    friend class CarChassis;
 
     Model *model_;
     SceneNode *node_;
@@ -34,9 +37,18 @@ private:
     CarBody *bodyObj_;
     CarChassis *chassisObj_;
     dGeomID wheelRay_;
+    Matrix transform_;
 
+    int lastBump_;          //  steps between bumps
+    bool bump_;             //  try to un-stick
+    bool canBump_;          //  has had ground contact
     float steer_;           //  input control to steering
     float gas_;             //  input control to propulsion
+    float topSpeed_;        //  how fast does it go at top speed?
+    float steerDamping_;    //  how sluggish is the steering?
+    float driveFriction_;   //  how sluggish is the steering?
+    float steerFriction_;   //  how sluggish is the steering?
+    float sideSlip_;        //  how much do we slip sideways?
     float wheelTurn_[4];    //  how much the wheel has turned
     float wheelExtent_[4];  //  bottom edge of wheel in Z
     float wheelNeutral_[4]; //  bottom edge of wheel in Z when at rest

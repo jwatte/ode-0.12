@@ -8,6 +8,9 @@
 #include "rc_scenegraph.h"
 #include "rc_car.h"
 #include "rc_obstacle.h"
+#include "rc_skybox.h"
+
+#include "rc_input.h"
 
 class Camera : public GameObject
 {
@@ -53,12 +56,18 @@ public:
         name_ = c.string("name");
         target_ = c.string("target");
         distance_ = c.numberf("distance");
+        height_ = c.numberf("height");
+        targetHeight_ = c.numberf("targetheight");
+        phase_ = 0;
     }
     CameraInfo camInfo_;
     SceneNode *node_;
     std::string name_;
     std::string target_;
     float distance_;
+    float height_;
+    float targetHeight_;
+    float phase_;
     void on_addToScene()
     {
         node_ = SceneGraph::addCamera(name_, &camInfo_);
@@ -78,20 +87,27 @@ public:
             Vec3 tPos(tx.translation());
             camInfo_.lookAt.x = tPos.x;
             camInfo_.lookAt.y = tPos.y;
-            camInfo_.lookAt.z = tPos.z + 1; //  hack!
+            camInfo_.lookAt.z = tPos.z + targetHeight_;
             Vec3 d(tx.getColumn(1));
             scale(d, -distance_);
-            addTo(tPos, Vec3(0, 0, distance_ * 0.25f)); //  hack!
+            addTo(tPos, Vec3(0, 0, height_));
             subFrom(tPos, d);
             subFrom(tPos, cPos);
             scale(tPos, 0.1f);
-            if (fabs(tPos.z) < 0.5f) {
-                tPos.z = 0;
+            tPos.z = tPos.z * 2;    //  find height sooner
+            addTo(cPos, tPos);
+            if (testInput(ik_start)) {
+                phase_ += 0.01f;
+                if (phase_ > 3.1415927f) {
+                    phase_ -= 2 * 3.1415927f;
+                }
+                cPos = camInfo_.lookAt;
+                cPos.x += distance_ * sinf(phase_);
+                cPos.y += distance_ * cosf(phase_);
             }
             else {
-                tPos.z = tPos.z * 2;    //  find height sooner
+                phase_ = 0;
             }
-            addTo(cPos, tPos);
             setPos(cPos);
         }
         node_->setPos(pos());
@@ -111,6 +127,7 @@ GameObjectTypeImpl<Obstacle> gtObstacle;
 GameObjectTypeImpl<Camera> gtCamera;
 GameObjectTypeImpl<FollowCamera> gtFollowCamera;
 GameObjectTypeImpl<Car> gtCar;
+GameObjectTypeImpl<Skybox> gtSkybox;
 
 GameObjectType *GameObjectType::type(std::string const &type)
 {
@@ -129,6 +146,10 @@ GameObjectType *GameObjectType::type(std::string const &type)
     else if (type == "car")
     {
         return &gtCar;
+    }
+    else if (type == "skybox")
+    {
+        return &gtSkybox;
     }
     else
     {

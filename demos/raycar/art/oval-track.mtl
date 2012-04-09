@@ -1,0 +1,44 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 08.04.2012 16:39:32
+
+newmtl grass
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 1.00000 1.00000 1.00000
+	Kd 1.00000 1.00000 1.00000
+	Ks 0.10047 0.10980 0.10102
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/grass-1024.jpg
+	map_Kd /code/ode-0.12/demos/raycar/art/grass-1024.jpg
+
+newmtl concrete
+	Ns 25.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.75686 0.75686 0.75686
+	Kd 0.75686 0.75686 0.75686
+	Ks 0.20965 0.20965 0.20965
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/concrete-1024.jpg
+	map_Kd /code/ode-0.12/demos/raycar/art/concrete-1024.jpg
+
+newmtl asphalt
+	Ns 18.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.72157 0.72157 0.72157
+	Kd 0.72157 0.72157 0.72157
+	Ks 0.06980 0.06980 0.06980
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/asphalt-1024.jpg
+	map_Kd /code/ode-0.12/demos/raycar/art/asphalt-1024.jpg

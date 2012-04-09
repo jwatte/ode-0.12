@@ -5,7 +5,7 @@
 #include "rc_asset.h"
 #include "rc_config.h"
 #include "rc_input.h"
-
+#include "rc_debug.h"
 
 class Car;
 
@@ -27,11 +27,22 @@ class CarChassis : public OdeGeom
 public:
     CarChassis(Car *c, dGeomID id) : OdeGeom(id), car_(c) {}
     Car *car_;
+    bool onContact2(OdeGeom *otherGeom, OdeBody *otherBody, dContact *contact)
+    {
+        car_->canBump_ = true;
+        return true;
+    }
+    bool onContact1(OdeGeom *otherGeom, OdeBody *otherBody, dContact *contact)
+    {
+        car_->canBump_ = true;
+        return true;
+    }
 };
 
 
 Car::Car(Config const &c) : GameObject(c)
 {
+    node_ = NULL;
     std::string modelName = c.string("model");
     model_ = Asset::model(modelName);
     setPos(Vec3(c.numberf("x"), c.numberf("y"), c.numberf("z")));
@@ -39,10 +50,18 @@ Car::Car(Config const &c) : GameObject(c)
     body_ = 0;
     chassis_ = 0;
     bodyObj_ = 0;
+    lastBump_ = 0;
+    bump_ = false;
+    canBump_ = false;
     chassisObj_ = 0;
     memset(wheelExtent_, 0, sizeof(wheelExtent_));
     memset(wheelTurn_, 0, sizeof(wheelTurn_));
     memset(wheelBone_, 0, sizeof(wheelBone_));
+    topSpeed_ = c.numberf("topSpeed");
+    steerDamping_ = c.numberf("steerDamping");
+    driveFriction_ = c.numberf("driveFriction");
+    steerFriction_ = c.numberf("steerFriction");
+    sideSlip_ = c.numberf("sideSlip");
     steer_ = 0;
     gas_ = 0;
     size_t bCount;
@@ -97,9 +116,9 @@ void Car::on_addToScene()
     for (size_t i = 0; i < 4; ++i)
     {
         b = model_->boneNamed(names[i]);
-        wheelExtent_[i] = b->lowerBound.z;
-        wheelNeutral_[i] = wheelExtent_[i];
-        wheelCenter_[i] = (*(Matrix const *)b->xform).translation().z;
+        wheelExtent_[i] = b->lowerBound.z;  //  wheelExtent -- where bottom surface of wheel is
+        wheelNeutral_[i] = wheelExtent_[i]; //  wheelNeutral -- where I want the wheel bottom to be
+        wheelCenter_[i] = (*(Matrix const *)b->xform).translation().z;  //  wheelCenter -- where the center of the wheel is
         for (size_t j = 0; j < bones_.size(); ++j)
         {
             if (!strcmp(bones_[j].name, names[i]))
@@ -130,23 +149,53 @@ void Car::on_removeFromScene()
     node_ = 0;
 }
 
+void Car::setPos(Vec3 const &pos)
+{
+    Matrix m(transform_);
+    m.setTranslation(pos);
+    setTransform(m);
+}
+
+void Car::setTransform(Matrix const &m)
+{
+    transform_ = m;
+    if (node_) {    //  note: I may be out of the scene
+        node_->setTransform(m);
+    }
+    GameObject::setPos(m.translation());
+}
+
 void Car::on_step()
 {
     /* update node transform based on rigid body */
     Vec3 p(dBodyGetPosition(body_));
+    if (p.z < -100) {
+        dBodySetPosition(body_, 0, 0, 5);
+        dBodySetLinearVel(body_, 0, 0, 0);
+        dBodySetAngularVel(body_, 0, 0, 0);
+        float q[4] = { 1, 0, 0, 0 };
+        dBodySetQuaternion(body_, q);
+    }
     float const *rot = dBodyGetRotation(body_);
     Matrix m(Matrix::identity);
     m.setRow(0, rot);
     m.setRow(1, rot + 4);
     m.setRow(2, rot + 8);
     m.setTranslation(p);
-    node_->setTransform(m);
+    setTransform(m);
+    //  tripod
+    addDebugLine(p, m.right(), Rgba(1, 0, 0, 1));
+    addDebugLine(p, m.forward(), Rgba(0, 1, 0, 1));
+    addDebugLine(p, m.up(), Rgba(0, 0, 1, 1));
 
     /* update the wheels based on extent */
     for (size_t i = 0; i < 4; ++i)
     {
         //  todo: apply steering rotation
-        (*(Matrix *)bones_[wheelBone_[i]].xform).rows[2][3] = wheelExtent_[i] - (wheelNeutral_[i] - wheelCenter_[i]);
+        //  wheelNeutral - wheelCenter means bottom of wheel
+        //  translation of wheel should be (wheelCenter - (wheelNeutral - wheelExtent))
+        //  so if neutral > extent, wheel extends down
+        (*(Matrix *)bones_[wheelBone_[i]].xform).rows[2][3] = wheelCenter_[i] - (wheelNeutral_[i] - wheelExtent_[i]);
     }
     node_->setBones(&bones_[0], bones_.size());
 
@@ -183,6 +232,14 @@ void Car::on_step()
     if (testInput(ik_right)) {
         sd += 1;
     }
+    bump_ = false;
+    if (lastBump_ > 0) {
+        --lastBump_;
+    }
+    if (canBump_ && lastBump_ == 0 && testInput(ik_trigger)) {
+        bump_ = true;
+        lastBump_ = 100;
+    }
     if (sd == 0) {
         if (steer_ > 0) {
             steer_ -= 0.1f;
@@ -195,7 +252,7 @@ void Car::on_step()
         }
     }
     else {
-        steer_ = steer_ + sd * 0.1f;
+        steer_ = sd - (sd - steer_) * steerDamping_;
         if (steer_ > 1) {
             steer_ = 1;
         }
@@ -205,28 +262,34 @@ void Car::on_step()
     }
 }
 
+//  Walk through wheels, testing one at a time for contact with ground.
+//  This emulates suspension AND propulsion AND steering through the use 
+//  of contact constraints.
 void CarBody::onStep()
 {
-    //  For each of the car wheel positions, fire a ray in the car "down" direction.
-    //  Put the wheel at that point if it hits something, else put the wheel at the end.
-    Vec3 fwd = car_->node_->transform().getColumn(1);
-    Vec3 up = car_->node_->transform().getColumn(2);
-    Vec3 right = car_->node_->transform().getColumn(0);
+    //  the model comes out backward, so this is what it is
+    Vec3 fwd = car_->transform().backward();
+    Vec3 up = car_->transform().up();
+    Vec3 right = car_->transform().left();
+    //  steer based on inputs
     Vec3 steerFwd(right);
     scale(steerFwd, car_->steer_);
     addTo(steerFwd, fwd);
     normalize(steerFwd);
+    //  For each of the car wheel positions, fire a ray in the car "down" direction.
+    //  Put the wheel at that point if it hits something, else put the wheel at the end.
     for (size_t i = 0; i != 4; ++i)
     {
-        //  for each wheel, set the ray to the center of the wheel bone position
+        //  for each wheel, set a ray to the center of the wheel bone position
         Vec3 pos = (*(Matrix const *)car_->bones_[car_->wheelBone_[i]].xform).translation();
         pos.z = car_->wheelCenter_[i];
-        multiply(car_->node_->transform(), pos);
+        multiply(car_->transform(), pos);
         rayOrigin_ = pos;
         // from the center of the wheel bone, in the "down" direction of the car
         dGeomRaySet(car_->wheelRay_, pos.x, pos.y, pos.z, -up.x, -up.y, -up.z);
         // I want the closest collision for trimesh/ray intersections
         dGeomRaySetClosestHit(car_->wheelRay_, 1);
+        //  max extent is one full wheel radius down -- neutral is one wheel radius already, so 2 for max
         float maxExtent = fabs(car_->wheelNeutral_[i] - car_->wheelCenter_[i]) * 2;
         // wheel can move at most half a wheel radius, plus the distance from center to radius at rest
         dGeomRaySetLength(car_->wheelRay_, maxExtent);
@@ -237,9 +300,11 @@ void CarBody::onStep()
         dSpaceCollide2((dGeomID)gStaticSpace, car_->wheelRay_, this, &CarBody::wheelRayCallback);
         if (nearest_.depth > maxExtent)
         {
+            //  maxExtent means the wheel suspension is maximally extended,
+            //  and there is no contact
             nearest_.depth = maxExtent;
         }
-        //  extend the wheels to the point of contact
+        //  extend the wheel bottoms to the point of contact
         car_->wheelExtent_[i] = car_->wheelCenter_[i] - nearest_.depth;
         if (nearest_.depth < maxExtent) // not <=, because == means "no contact"
         {
@@ -247,31 +312,51 @@ void CarBody::onStep()
             dContact c;
             memset(&c, 0, sizeof(c));
             c.geom = nearest_;
-            c.geom.depth = (car_->wheelCenter_[i] - car_->wheelNeutral_[i]) - nearest_.depth + 0.1f; // hack!
+            //  penetration depth is depth from furthest contact point
+            //  -- this means I have to carefully tweak the CFM/ERP for "sink-in"
+            c.geom.depth = maxExtent * 0.5f - nearest_.depth;
+            Vec3 cpos(*(Vec3 *)c.geom.pos);
+            Vec3 cdir(*(Vec3 *)c.geom.normal);
+            Vec3 cpos2;
+            subFrom(cpos2, cdir);
+            addDebugLine(cpos, cpos2, Rgba(1, 0, 1, 1));
+            addDebugLine(cpos, cdir, Rgba(0, 1, 1, 1));
             if (c.geom.depth > 0) {
-                c.geom.normal[0] *= -1;
-                c.geom.normal[1] *= -1;
-                c.geom.normal[2] *= -1;
-                //  frontleft and frontright are steering wheels
-                if (i == 0 || i == 2) {
-                    memcpy(c.fdir1, &steerFwd, sizeof(steerFwd));
-                }
-                else {
-                    memcpy(c.fdir1, &fwd, sizeof(fwd));
-                }
-                c.surface.mode = dContactApprox1 | dContactMu2 | dContactSlip2 | dContactMotion1 |
-                    dContactSoftERP | dContactSoftCFM | dContactFDir1;
-                c.surface.mu = 1.0f;
-                c.surface.mu2 = 0.5f;
-                c.surface.slip2 = 0.001f;
-                c.surface.soft_cfm = 0.002f;
-                c.surface.soft_erp = 0.3f;
-                //  doing this in ray intersection gives us traction only when a wheel touches the ground
-                c.surface.motion1 = -car_->gas_ * 10;
-                dJointID jid = dJointCreateContact(gWorld, gJointGroup, &c);
-                dJointAttach(jid, car_->body_, 0);
+                //  I can bump if there's been a contact since the last bump
+                car_->canBump_ = true;
             }
+
+            c.geom.normal[0] *= -1;
+            c.geom.normal[1] *= -1;
+            c.geom.normal[2] *= -1;
+            //  frontleft and frontright are steering wheels
+            if (i == 0 || i == 2) {
+                memcpy(c.fdir1, &steerFwd, sizeof(steerFwd));
+            }
+            else {
+                memcpy(c.fdir1, &fwd, sizeof(fwd));
+            }
+            //  Turn on a bunch of features of the contact joint, used to emulate wheels and steering.
+            c.surface.mode = dContactApprox1 | dContactMu2 | dContactSlip2 | dContactMotion1 |
+                dContactSoftERP | dContactSoftCFM | dContactFDir1;
+            c.surface.mu = car_->driveFriction_;
+            c.surface.mu2 = car_->steerFriction_;
+            c.surface.slip2 = car_->sideSlip_;   //  some amount of sideways slip
+            //  suspension coefficients for bounciness
+            c.surface.soft_cfm = 0.002f;
+            c.surface.soft_erp = 0.3f;
+            //  doing this in ray intersection gives us traction only when a wheel touches the ground
+            c.surface.motion1 = -car_->gas_ * car_->topSpeed_;
+            //  create the joint even if the suspension is not yet touching the ground,
+            //  because I want to avoid penetration
+            dJointID jid = dJointCreateContact(gWorld, gJointGroup, &c);
+            //dJointAttach(jid, car_->body_, 0);
         }
+    }
+    if (car_->bump_) {
+        dBodyAddForce(car_->body_, steerFwd.x * 10000, steerFwd.y * 10000, 100000);
+        dBodyAddRelTorque(car_->body_, 0, 10000, 0);
+        car_->canBump_ = false;
     }
 }
 

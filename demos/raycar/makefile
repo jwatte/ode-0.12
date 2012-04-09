@@ -2,10 +2,13 @@
 ALL_CONTENT := \
 	content/raycar-unified.bin \
 	content/crate1.bin \
-	content/track1.bin \
+	content/oval-track.bin \
+	content/lostvalley-skybox.bin \
 	content/raycar.scn \
 	content/default-vs.glsl \
-	content/default-fs.glsl
+	content/default-fs.glsl \
+	content/custom-vs.glsl \
+	content/custom-fs.glsl
 
 TOOL := ../../ode-0.12/build/vs2010/Debug/raycar.exe
 

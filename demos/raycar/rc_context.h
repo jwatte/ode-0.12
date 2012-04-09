@@ -25,7 +25,7 @@ public:
     void preRender();
     void preSwap();
 
-    void beginCustom(Matrix const &modelView);
+    void beginCustom(Matrix const &modelView, int texture=0);
     void endCustom();
 private:
     int width_;

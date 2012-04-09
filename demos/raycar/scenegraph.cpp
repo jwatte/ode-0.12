@@ -44,6 +44,35 @@ public:
     }
 };
 
+class SkyModelSceneNode : public ModelSceneNode
+{
+public:
+    SkyModelSceneNode(std::string const &name, Model *mdl) :
+        ModelSceneNode(name, mdl)
+    {
+        pass_ = 2;
+    }
+    virtual void render(CameraInfo const &cam)
+    {
+    glAssertError();
+        Matrix m;
+        cam.getModelView(this, &m);
+        m.setTranslation(Vec3(0, 0, 0));
+        glLoadTransposeMatrixf(&m.rows[0][0]);
+        mdl_->bind();
+        if (bones_ != NULL)
+        {
+            size_t sz = 0;
+            mdl_->bones(&sz);
+            if (sz != boneCount_)
+            {
+                throw std::runtime_error("ModelSceneNode configured with wrong boneCount_");
+            }
+        }
+        mdl_->issue(m, bones_);
+    }
+};
+
 class CameraSceneNode : public SceneNode
 {
 public:
@@ -83,7 +112,8 @@ SceneNode::SceneNode(std::string const &name) :
     xform_(Matrix::identity),
     name_(name),
     bones_(0),
-    boneCount_(0)
+    boneCount_(0),
+    pass_(1)
 {
 }
 
@@ -131,6 +161,13 @@ void SceneGraph::init(GLContext *ctx)
 SceneNode *SceneGraph::addModel(std::string const &name, Model *mdl)
 {
     ModelSceneNode *ret = new ModelSceneNode(name, mdl);
+    scene_.insert(ret);
+    return ret;
+}
+
+SceneNode *SceneGraph::addSkyModel(std::string const &name, Model *mdl)
+{
+    ModelSceneNode *ret = new SkyModelSceneNode(name, mdl);
     scene_.insert(ret);
     return ret;
 }
@@ -197,12 +234,15 @@ void SceneGraph::present(SceneNode *camera)
     }
 
     //  render all objects
-    for (std::set<SceneNode*>::iterator ptr(scene_.begin()), end(scene_.end());
-        ptr != end; ++ptr)
+    for (int pass = 1; pass < 3; ++pass)
     {
-        if ((*ptr) != camera)
+        for (std::set<SceneNode*>::iterator ptr(scene_.begin()), end(scene_.end());
+            ptr != end; ++ptr)
         {
-            (*ptr)->render(ci);
+            if ((*ptr)->pass_ == pass && (*ptr) != camera)
+            {
+                (*ptr)->render(ci);
+            }
         }
     }
 

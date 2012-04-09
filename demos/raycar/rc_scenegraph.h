@@ -16,6 +16,7 @@ class SceneGraph
 public:
     static void init(GLContext *ctx);
     static SceneNode *addModel(std::string const &name, Model *mdl);
+    static SceneNode *addSkyModel(std::string const &name, Model *mdl);
     static SceneNode *addCamera(std::string const &name, CameraInfo *cam);
     static void present(SceneNode *camera);
     static SceneNode *nodeNamed(std::string const &name);
@@ -41,6 +42,7 @@ protected:
     std::string name_;
     Bone const *bones_;
     size_t boneCount_;
+    int pass_;
 };
 
 struct CameraInfo

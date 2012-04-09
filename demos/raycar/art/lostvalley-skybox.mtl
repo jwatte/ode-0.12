@@ -1,0 +1,80 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 08.04.2012 20:17:11
+
+newmtl front
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.00000 0.00000 0.00000
+	Ks 0.00000 0.00000 0.00000
+	Ke 1.00000 1.00000 1.00000
+	map_Ke /code/ode-0.12/demos/raycar/art/lostvalley_front.jpg
+
+newmtl back
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.00000 0.00000 0.00000
+	Ks 0.00000 0.00000 0.00000
+	Ke 1.00000 1.00000 1.00000
+	map_Ke /code/ode-0.12/demos/raycar/art/lostvalley_back.jpg
+
+newmtl left
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.00000 0.00000 0.00000
+	Ks 0.00000 0.00000 0.00000
+	Ke 1.00000 1.00000 1.00000
+	map_Ke /code/ode-0.12/demos/raycar/art/lostvalley_left.jpg
+
+newmtl right
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.00000 0.00000 0.00000
+	Ks 0.00000 0.00000 0.00000
+	Ke 1.00000 1.00000 1.00000
+	map_Ke /code/ode-0.12/demos/raycar/art/lostvalley_right.jpg
+
+newmtl top
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.00000 0.00000 0.00000
+	Ks 0.00000 0.00000 0.00000
+	Ke 1.00000 1.00000 1.00000
+	map_Ke /code/ode-0.12/demos/raycar/art/lostvalley_top.jpg
+
+newmtl bottom
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.00000 0.00000 0.00000
+	Kd 0.00000 0.00000 0.00000
+	Ks 0.00000 0.00000 0.00000
+	Ke 1.00000 1.00000 1.00000
+	map_Ke /code/ode-0.12/demos/raycar/art/grass.tga

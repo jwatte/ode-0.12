@@ -215,6 +215,7 @@
     <ClCompile Include="reference.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="scenegraph.cpp" />
+    <ClCompile Include="skybox.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -235,6 +236,7 @@
     <ClInclude Include="rc_reference.h" />
     <ClInclude Include="rc_scene.h" />
     <ClInclude Include="rc_scenegraph.h" />
+    <ClInclude Include="rc_skybox.h" />
     <ClInclude Include="rc_vertexmerge.h" />
     <ClInclude Include="rc_window.h" />
   </ItemGroup>

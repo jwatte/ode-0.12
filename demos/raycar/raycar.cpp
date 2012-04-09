@@ -1,4 +1,27 @@
 
+
+/*
+    2012-04-08 jwatte@gmail.com
+
+    This is a from-scratch re-implementation of the idea 
+    of my Raycar demo from 2004, using a more modern ODE 
+    library version, and using OpenGL so that it can be 
+    ported to MacOSX and Linux if need be.
+
+    If you just want to know how the car works, most of 
+    that physics/behavior is in car.cpp. The rest of the 
+    program is just generic game-running code without any 
+    particular interest or value.
+
+    All this code is released under the MIT license. You 
+    are free to use it in any redistribution, including 
+    re-use in whole or part in commercial projects, 
+    assuming you adhere to the requirements of the 
+    license: http://www.opensource.org/licenses/MIT
+    (<year> is 2012, and <copyright holders> is Jon Watte.)
+
+ */
+
 #if defined(_WINDOWS)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
