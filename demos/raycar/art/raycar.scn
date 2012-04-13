@@ -11,12 +11,12 @@ car {
     steerDamping 0.85
     brakeFriction 1.5
     steerFriction 4
-    sideSlip 0.00001
+    sideSlip 0.00002
     suspensionCfm 0.003
     suspensionErp 0.5
     enginePower 1500
     airDrag 5
-    speedSteer 15
+    speedSteer 10
 }
 
 track {
