@@ -184,5 +184,6 @@ private:
 void read_obj(IxRead *file, IModelData *m, float scale, std::string const &dir);
 void read_bin(IxRead *file, IModelData *m);
 
+void get_bone_transform(Bone const *skel, size_t boneIndex, Matrix &oMat);
 
 #endif  //  rc_model_h

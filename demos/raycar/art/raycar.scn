@@ -8,10 +8,15 @@ car {
     z 5
     name car
     topSpeed 40
-    steerDamping 0.75
-    driveFriction 2
-    steerFriction 2
-    sideSlip 0.0001
+    steerDamping 0.85
+    brakeFriction 1.5
+    steerFriction 4
+    sideSlip 0.00001
+    suspensionCfm 0.003
+    suspensionErp 0.5
+    enginePower 1500
+    airDrag 5
+    speedSteer 15
 }
 
 track {

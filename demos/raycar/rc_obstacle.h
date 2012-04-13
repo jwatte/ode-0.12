@@ -7,6 +7,7 @@
 #include "rc_ode.h"
 
 #include <string>
+#include <vector>
 
 class Model;
 struct Config;
@@ -25,8 +26,8 @@ public:
     Model *model_;
     SceneNode *node_;
     std::string name_;
-    dTriMeshDataID tmd_;
-    dGeomID geom_;
+    std::vector<dTriMeshDataID> tmd_;
+    std::vector<dGeomID> geom_;
 };
 
 #endif  //  rc_obstacle

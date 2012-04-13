@@ -46,9 +46,14 @@ private:
     float gas_;             //  input control to propulsion
     float topSpeed_;        //  how fast does it go at top speed?
     float steerDamping_;    //  how sluggish is the steering?
-    float driveFriction_;   //  how sluggish is the steering?
+    float brakeFriction_;   //  how sluggish is the steering?
     float steerFriction_;   //  how sluggish is the steering?
     float sideSlip_;        //  how much do we slip sideways?
+    float suspensionCfm_;   //  spring slop
+    float suspensionErp_;   //  spring force
+    float enginePower_;     //  how fast it can accelerate
+    float airDrag_;         //  how much air drag by velocity squared
+    float speedSteer_;      //  how much to allow steering at speed
     float wheelTurn_[4];    //  how much the wheel has turned
     float wheelExtent_[4];  //  bottom edge of wheel in Z
     float wheelNeutral_[4]; //  bottom edge of wheel in Z when at rest

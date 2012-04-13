@@ -59,9 +59,14 @@ Car::Car(Config const &c) : GameObject(c)
     memset(wheelBone_, 0, sizeof(wheelBone_));
     topSpeed_ = c.numberf("topSpeed");
     steerDamping_ = c.numberf("steerDamping");
-    driveFriction_ = c.numberf("driveFriction");
+    brakeFriction_ = c.numberf("brakeFriction");
     steerFriction_ = c.numberf("steerFriction");
     sideSlip_ = c.numberf("sideSlip");
+    suspensionCfm_ = c.numberf("suspensionCfm");
+    suspensionErp_ = c.numberf("suspensionErp");
+    enginePower_ = c.numberf("enginePower");
+    airDrag_ = c.numberf("airDrag");
+    speedSteer_ = c.numberf("speedSteer");
     steer_ = 0;
     gas_ = 0;
     size_t bCount;
@@ -202,8 +207,8 @@ void Car::on_step()
     /* parse gas/brake input */
     if (testInput(ik_backward)) {
         gas_ = gas_ - 0.05f;
-        if (gas_ < -1) {
-            gas_ = -1;
+        if (gas_ < -0.5f) {
+            gas_ = -0.5f;
         }
     }
     else if (testInput(ik_forward)) {
@@ -247,7 +252,7 @@ void Car::on_step()
         else if (steer_ < 0) {
             steer_ += 0.1f;
         }
-        else if (steer_ >= -0.1f && steer_ <= 0.1f) {
+        if (steer_ >= -0.1f && steer_ <= 0.1f) {
             steer_ = 0;
         }
     }
@@ -267,15 +272,28 @@ void Car::on_step()
 //  of contact constraints.
 void CarBody::onStep()
 {
+    Vec3 vel = *(Vec3 const *)dBodyGetLinearVel(car_->body_);
     //  the model comes out backward, so this is what it is
     Vec3 fwd = car_->transform().backward();
     Vec3 up = car_->transform().up();
     Vec3 right = car_->transform().left();
+    float fVel = dot(vel, fwd);
+    float steerScale = 1.0f / std::max(1.0f, fabsf(fVel) / car_->speedSteer_);
+    //  air drag
+    float vee2 = length(vel);
+    float vee = sqrtf(vee2);
+    float airDrag = car_->airDrag_;
+    dBodyAddForce(car_->body_, -vel.x * (1 + vee) * airDrag, -vel.y * (1 + vee) * airDrag, -vel.z * (1 + vee) * airDrag);
     //  steer based on inputs
     Vec3 steerFwd(right);
-    scale(steerFwd, car_->steer_);
+    scale(steerFwd, car_->steer_ * steerScale);
     addTo(steerFwd, fwd);
     normalize(steerFwd);
+    float gasForce = car_->gas_ * car_->enginePower_;
+    if (fVel > car_->topSpeed_ * 0.5f) {
+        gasForce = gasForce * car_->topSpeed_ * 0.5f / fVel;
+    }
+    float braking = std::min(1.0f, std::max(0.f, 1 - fabsf(car_->gas_ * 5)));
     //  For each of the car wheel positions, fire a ray in the car "down" direction.
     //  Put the wheel at that point if it hits something, else put the wheel at the end.
     for (size_t i = 0; i != 4; ++i)
@@ -319,38 +337,51 @@ void CarBody::onStep()
             Vec3 cdir(*(Vec3 *)c.geom.normal);
             Vec3 cpos2;
             subFrom(cpos2, cdir);
-            addDebugLine(cpos, cpos2, Rgba(1, 0, 1, 1));
-            addDebugLine(cpos, cdir, Rgba(0, 1, 1, 1));
+            bool contact = false;
             if (c.geom.depth > 0) {
                 //  I can bump if there's been a contact since the last bump
                 car_->canBump_ = true;
-            }
+                contact = true;
+                addDebugLine(cpos, cpos2, Rgba(1, 0, 1, 1));
 
-            c.geom.normal[0] *= -1;
-            c.geom.normal[1] *= -1;
-            c.geom.normal[2] *= -1;
-            //  frontleft and frontright are steering wheels
-            if (i == 0 || i == 2) {
-                memcpy(c.fdir1, &steerFwd, sizeof(steerFwd));
+                c.geom.normal[0] *= -1;
+                c.geom.normal[1] *= -1;
+                c.geom.normal[2] *= -1;
+                //  figure out which direction the wheels turn
+                //  frontleft and frontright are steering wheels
+                if (i == 0 || i == 2) {
+                    memcpy(c.fdir1, &steerFwd, sizeof(steerFwd));
+                }
+                else {
+                    //  driving wheels
+                    memcpy(c.fdir1, &fwd, sizeof(fwd));
+                    if (contact) {
+                        dBodyAddForceAtPos(car_->body_, 
+                            c.fdir1[0] * -gasForce, c.fdir1[1] * -gasForce, c.fdir1[2] * -gasForce, 
+                            c.geom.pos[0], c.geom.pos[1], c.geom.pos[2]);
+                    }
+                }
+                if (contact) {
+                    addDebugLine(*(Vec3 *)c.geom.pos, *(Vec3 *)c.fdir1, Rgba(1.0f, 0.5f, 0.0f, 1.0f));
+                }
+                //  Turn on a bunch of features of the contact joint, used to emulate wheels and steering.
+                c.surface.mode = dContactApprox1 | dContactMu2 | dContactSlip1 | dContactSlip2 |
+                    dContactSoftERP | dContactSoftCFM | dContactFDir1;
+                //  While rolling, there's no friction in the "mu" (fdir1) direction.
+                c.surface.mu = car_->brakeFriction_ * braking;
+                //  There's always friction in the sideways direction
+                c.surface.mu2 = car_->steerFriction_;
+                c.surface.slip1 = 0;
+                //  some amount of sideways slip (fds -- force dependent slip)
+                c.surface.slip2 = car_->sideSlip_;
+                //  suspension coefficients for bounciness
+                c.surface.soft_cfm = car_->suspensionCfm_;
+                c.surface.soft_erp = car_->suspensionErp_;
+                //  create the joint even if the suspension is not yet touching the ground,
+                //  because I want to avoid penetration
+                dJointID jid = dJointCreateContact(gWorld, gJointGroup, &c);
+                dJointAttach(jid, car_->body_, 0);
             }
-            else {
-                memcpy(c.fdir1, &fwd, sizeof(fwd));
-            }
-            //  Turn on a bunch of features of the contact joint, used to emulate wheels and steering.
-            c.surface.mode = dContactApprox1 | dContactMu2 | dContactSlip2 | dContactMotion1 |
-                dContactSoftERP | dContactSoftCFM | dContactFDir1;
-            c.surface.mu = car_->driveFriction_;
-            c.surface.mu2 = car_->steerFriction_;
-            c.surface.slip2 = car_->sideSlip_;   //  some amount of sideways slip
-            //  suspension coefficients for bounciness
-            c.surface.soft_cfm = 0.002f;
-            c.surface.soft_erp = 0.3f;
-            //  doing this in ray intersection gives us traction only when a wheel touches the ground
-            c.surface.motion1 = -car_->gas_ * car_->topSpeed_;
-            //  create the joint even if the suspension is not yet touching the ground,
-            //  because I want to avoid penetration
-            dJointID jid = dJointCreateContact(gWorld, gJointGroup, &c);
-            //dJointAttach(jid, car_->body_, 0);
         }
     }
     if (car_->bump_) {

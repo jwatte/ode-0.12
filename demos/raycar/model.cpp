@@ -449,3 +449,15 @@ ModelWriter::ModelWriter()
     wr_ = 0;
 }
 
+void get_bone_transform(Bone const *skel, size_t boneIndex, Matrix &oMat)
+{
+    if (boneIndex == 0 || skel[boneIndex].parent == boneIndex)
+    {
+        oMat = *(Matrix const *)skel[boneIndex].xform;
+    }
+    else {
+        get_bone_transform(skel, skel[boneIndex].parent, oMat);
+        multiply(oMat, *(Matrix const *)skel[boneIndex].xform, oMat);
+    }
+}
+

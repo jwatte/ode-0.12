@@ -52,7 +52,8 @@ dxJointContact::getInfo1( dxJoint::Info1 *info )
     if ( contact.surface.mu < 0 ) contact.surface.mu = 0;
     if ( contact.surface.mode & dContactMu2 )
     {
-        if ( contact.surface.mu > 0 ) m++;
+        /* note: I can't have mu2 without mu -- that makes the solver crash */
+        if ( ( contact.surface.mu > 0 ) || ( contact.surface.mu2 > 0 ) ) m++;
         if ( contact.surface.mu2 < 0 ) contact.surface.mu2 = 0;
         if ( contact.surface.mu2 > 0 ) m++;
         if ( contact.surface.mu  == dInfinity ) nub ++;

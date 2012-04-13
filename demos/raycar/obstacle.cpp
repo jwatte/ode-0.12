@@ -12,7 +12,6 @@ Obstacle::Obstacle(Config const &c) : GameObject(c)
     model_ = Asset::model(modelName_);
     setPos(Vec3(c.numberf("x"), c.numberf("y"), c.numberf("z")));
     name_ = c.string("name");
-    geom_ = 0;
 }
 
 Obstacle::~Obstacle()
@@ -24,24 +23,45 @@ Obstacle::~Obstacle()
 void Obstacle::on_addToScene()
 {
     node_ = SceneGraph::addModel(name_, model_);
-    //  todo: move trimesh data id into Model proper to share it
-    tmd_ = dGeomTriMeshDataCreate();
-    //  todo: transform trimesh data by bones!
-    ...
-    dGeomTriMeshDataBuildSingle(tmd_, model_->vertices(), model_->vertexSize(), 
-        model_->vertexCount(), model_->indices(), model_->indexCount(), 12);
-    geom_ = dCreateTriMesh(gStaticSpace, tmd_, 0, 0, 0);
-    Vec3 p(pos());
-    dGeomSetPosition(geom_, p.x, p.y, p.z);
+    size_t batchCnt = 0;
+    TriangleBatch const *triBatch = model_->batches(&batchCnt);
+    size_t boneCnt = 0;
+    Bone const *bone = model_->bones(&boneCnt);
+    size_t vSize = model_->vertexSize();
+    char const * vertex = (char const *)model_->vertices();
+    unsigned int const *index = (unsigned int const *)model_->indices();
+    for (size_t bi = 0; bi != batchCnt; ++bi)
+    {
+        dTriMeshDataID tmd = dGeomTriMeshDataCreate();
+        dGeomTriMeshDataBuildSingle(tmd, vertex, vSize, triBatch[bi].maxVertexIndex + 1, 
+            index + triBatch[bi].firstTriangle * 3, triBatch[bi].numTriangles * 3, 12);
+        dGeomID geom = dCreateTriMesh(gStaticSpace, tmd, 0, 0, 0);
+        tmd_.push_back(tmd);
+        geom_.push_back(geom);
+        Matrix bx;
+        get_bone_transform(bone, triBatch[bi].bone, bx);
+        Vec3 p(bx.translation());
+        addTo(p, pos());
+        dGeomSetPosition(geom, p.x, p.y, p.z);
+        dGeomSetRotation(geom, bx.rows[0]);
+    }
 }
 
 void Obstacle::on_removeFromScene()
 {
     delete node_;
     node_ = 0;
-    dSpaceRemove(gStaticSpace, geom_);
-    dGeomDestroy(geom_);
-    dGeomTriMeshDataDestroy(tmd_);
+    for (std::vector<dGeomID>::iterator gptr(geom_.begin()), gend(geom_.end());
+        gptr != gend; ++gptr)
+    {
+        dSpaceRemove(gStaticSpace, *gptr);
+        dGeomDestroy(*gptr);
+    }
+    for (std::vector<dTriMeshDataID>::iterator dptr(tmd_.begin()), dend(tmd_.end());
+        dptr != dend; ++dptr)
+    {
+        dGeomTriMeshDataDestroy(*dptr);
+    }
 }
 
 void Obstacle::on_step()
