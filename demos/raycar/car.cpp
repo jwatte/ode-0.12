@@ -30,11 +30,13 @@ public:
     bool onContact2(OdeGeom *otherGeom, OdeBody *otherBody, dContact *contact)
     {
         car_->canBump_ = true;
+        contact->surface.mu = 0.5f;
         return true;
     }
     bool onContact1(OdeGeom *otherGeom, OdeBody *otherBody, dContact *contact)
     {
         car_->canBump_ = true;
+        contact->surface.mu = 0.5f;
         return true;
     }
 };
@@ -280,6 +282,7 @@ void CarBody::onStep()
     Vec3 fwd = car_->transform().backward();
     Vec3 up = car_->transform().up();
     Vec3 right = car_->transform().left();
+    //  Todo: Ackerman steering!
     float fVel = dot(vel, fwd);
     float steerScale = 1.0f / std::max(1.0f, fabsf(fVel) / car_->speedSteer_);
     //  air drag

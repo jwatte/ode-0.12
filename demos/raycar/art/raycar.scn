@@ -5,18 +5,18 @@ car {
     model raycar-unified.bin
     x -50
     y 50
-    z 5
+    z 1
     name car
     topSpeed 40
     steerDamping 0.75
     brakeFriction 1.2
-    steerFriction 3
-    sideSlip 0.00015
+    steerFriction 2.5
+    sideSlip 0
     suspensionCfm 0.003
     suspensionErp 0.5
     enginePower 1500
     airDrag 5
-    speedSteer 15
+    speedSteer 12
 }
 
 track {
