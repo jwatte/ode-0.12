@@ -665,6 +665,8 @@ void read_obj(IxRead *file, IModelData *m, float vScale, std::string const &dir)
             {
                 addTo(*(Vec3 *)&vvp->x, vMin);
             }
+            addTo(lob, vMin);
+            addTo(ub, vMin);
             scale(vMin, -1);
             (*(Matrix *)bones[bix].xform).setTranslation(vMin);
             bones[bix].lowerBound = lob;

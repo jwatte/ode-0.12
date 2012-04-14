@@ -197,9 +197,11 @@ void Model::setBones(Bone const *bones, size_t count)
         if (!equals(bones[i].upperBound, bones[i].lowerBound))
         {
             Vec3 lob(bones[i].lowerBound);
-            addTo(lob, matrixTranslation(bones[i].xform));
+            Matrix bxf;
+            get_bone_transform(bones, i, bxf);
+            addTo(lob, bxf.translation());
             Vec3 ub(bones[i].upperBound);
-            addTo(ub, matrixTranslation(bones[i].xform));
+            addTo(ub, bxf.translation());
             if (first)
             {
                 lower_ = lob;

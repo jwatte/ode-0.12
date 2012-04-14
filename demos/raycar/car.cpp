@@ -93,13 +93,19 @@ void Car::on_addToScene()
     {
         throw std::runtime_error("Did not find chassis bone in car.");
     }
+    size_t boneCnt = 0;
+    Bone const *skel = model_->bones(&boneCnt);
     Vec3 lower = b->lowerBound;
     Vec3 upper = b->upperBound;
+    Matrix xMat;
+    get_bone_transform(skel, b-skel, xMat);
+    multiply(xMat, lower);
+    multiply(xMat, upper);
     Vec3 offset(upper);
     Vec3 size(upper);
     addTo(offset, lower);
-    subFrom(size, lower);
-    scale(offset, 0.5f);
+    subFrom(size, lower);   //  size is extent
+    scale(offset, 0.5f);    //  offset is center
     dMassSetBoxTotal(&m, 100, size.x, size.y, size.z);
     dBodySetMass(body_, &m);
     dBodySetAutoDisableFlag(body_, false);
@@ -121,22 +127,18 @@ void Car::on_addToScene()
     for (size_t i = 0; i < 4; ++i)
     {
         b = model_->boneNamed(names[i]);
-        wheelExtent_[i] = b->lowerBound.z;  //  wheelExtent -- where bottom surface of wheel is
-        wheelNeutral_[i] = wheelExtent_[i]; //  wheelNeutral -- where I want the wheel bottom to be
-        wheelCenter_[i] = (*(Matrix const *)b->xform).translation().z;  //  wheelCenter -- where the center of the wheel is
-        for (size_t j = 0; j < bones_.size(); ++j)
+        if (!b)
         {
-            if (!strcmp(bones_[j].name, names[i]))
-            {
-                wheelBone_[i] = j;
-                ++found;
-                break;
-            }
+            throw std::runtime_error(std::string("Could not find wheel bone named ") + names[i] + " in car model.");
         }
-    }
-    if (found != 4)
-    {
-        throw std::runtime_error("Did not find all four wheel bones in car.");
+        get_bone_transform(skel, b-skel, xMat);
+        Vec3 wPos(b->lowerBound);
+        multiply(xMat, wPos);
+        wheelExtent_[i] = wPos.z;  //  wheelExtent -- where bottom surface of wheel is
+        wheelNeutral_[i] = wheelExtent_[i]; //  wheelNeutral -- where I want the wheel bottom to be
+        multiply(xMat, wPos);
+        wheelCenter_[i] = xMat.translation().z;  //  wheelCenter -- where the center of the wheel is
+        wheelBone_[i] = b - skel;
     }
 }
 
@@ -167,6 +169,7 @@ void Car::setTransform(Matrix const &m)
     if (node_) {    //  note: I may be out of the scene
         node_->setTransform(m);
     }
+    //  what to do about body_ ?
     GameObject::setPos(m.translation());
 }
 

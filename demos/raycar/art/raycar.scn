@@ -29,29 +29,43 @@ track {
 }
 
 crate {
-    type obstacle
+    type box
     model crate1.bin
-    x 0
-    y 100
-    z 0.5
+    x -55
+    y 55
+    z 3.5
     name crate
+    mass 10
 }
 crate2 {
-    type obstacle
+    type box
     model crate1.bin
-    x 1
-    y 100
-    z 1.5
+    x -55
+    y 55
+    z 4.5
     name crate2
+    mass 3
 }
 crate3 {
-    type obstacle
+    type box
     model crate1.bin
-    x 2
-    y 100
-    z 2.5
+    x -55
+    y 55
+    z 5.5
     name crate3
+    mass 1
 }
+
+barrel {
+    type barrel
+    model rustybarrel.bin
+    x -50
+    y 58
+    z 3.5
+    name barrel
+    mass 5
+}
+
 
 maincam {
     type followcamera

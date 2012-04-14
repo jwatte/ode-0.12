@@ -2,6 +2,7 @@
 ALL_CONTENT := \
 	content/raycar-unified.bin \
 	content/crate1.bin \
+	content/rustybarrel.bin \
 	content/oval-track.bin \
 	content/lostvalley-skybox.bin \
 	content/raycar.scn \

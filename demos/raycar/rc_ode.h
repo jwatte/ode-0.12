@@ -8,6 +8,9 @@ extern dSpaceID gDynamicSpace;
 extern dSpaceID gStaticSpace;
 extern dJointGroupID gJointGroup;
 
+struct Matrix;
+struct Vec3;
+
 void physicsClear();
 void physicsCreate();
 void physicsStep();
@@ -25,6 +28,7 @@ public:
     virtual bool onContact2(OdeBody *otherBody, OdeGeom *yourGeom, OdeGeom *otherGeom, dContact *contact);
     virtual bool onContact1(OdeBody *otherBody, OdeGeom *yourGeom, OdeGeom *otherGeom, dContact *contact);
     virtual void onStep();
+    void getTransform(Matrix &oXform, Vec3 const &iCenter);
     dBodyID id_;
 };
 

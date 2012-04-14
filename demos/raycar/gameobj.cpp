@@ -9,6 +9,8 @@
 #include "rc_car.h"
 #include "rc_obstacle.h"
 #include "rc_skybox.h"
+#include "rc_box.h"
+#include "rc_barrel.h"
 
 #include "rc_input.h"
 
@@ -128,6 +130,8 @@ GameObjectTypeImpl<Camera> gtCamera;
 GameObjectTypeImpl<FollowCamera> gtFollowCamera;
 GameObjectTypeImpl<Car> gtCar;
 GameObjectTypeImpl<Skybox> gtSkybox;
+GameObjectTypeImpl<Box> gtBox;
+GameObjectTypeImpl<Barrel> gtBarrel;
 
 GameObjectType *GameObjectType::type(std::string const &type)
 {
@@ -150,6 +154,14 @@ GameObjectType *GameObjectType::type(std::string const &type)
     else if (type == "skybox")
     {
         return &gtSkybox;
+    }
+    else if (type == "box")
+    {
+        return &gtBox;
+    }
+    else if (type == "barrel")
+    {
+        return &gtBarrel;
     }
     else
     {

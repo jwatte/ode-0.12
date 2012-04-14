@@ -40,6 +40,7 @@ void physicsCreate()
     }
     gWorld = dWorldCreate();
     dWorldSetGravity(gWorld, 0, 0, -9.8f);
+    dWorldSetDamping(gWorld, 0.01f, 0.01f);
     gJointGroup = dJointGroupCreate(0);
     gDynamicSpace = dHashSpaceCreate(0);
     dHashSpaceSetLevels(gDynamicSpace, 2, 5);
@@ -85,7 +86,7 @@ static void nearCallback(void *, dGeomID o1, dGeomID o2)
         }
         if (!gotCopy)
         {
-            cg[i].surface.mu = 0.5f;
+            cg[i].surface.mu = 1.5f;
             cg[i].surface.mode = dContactApprox1;
             dBodyID b1 = dGeomGetBody(o1);
             dBodyID b2 = dGeomGetBody(o2);
@@ -158,6 +159,15 @@ bool OdeBody::onContact1(OdeBody *otherBody, OdeGeom *yourGeom, OdeGeom *otherGe
 
 void OdeBody::onStep()
 {
+}
+
+void OdeBody::getTransform(Matrix &oXform, Vec3 const &iCenter)
+{
+    memcpy(oXform.rows[0], dBodyGetRotation(id_), 12 * sizeof(float));
+    oXform.setTranslation(*(Vec3 *)dBodyGetPosition(id_));
+    Vec3 of(iCenter);
+    multiply(oXform, of);
+    oXform.setTranslation(of);
 }
 
 

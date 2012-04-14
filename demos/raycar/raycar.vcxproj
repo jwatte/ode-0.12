@@ -199,7 +199,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="asset.cpp" />
+    <ClCompile Include="barrel.cpp" />
     <ClCompile Include="bitmap.cpp" />
+    <ClCompile Include="box.cpp" />
     <ClCompile Include="car.cpp" />
     <ClCompile Include="context.cpp" />
     <ClCompile Include="debug.cpp" />
@@ -220,7 +222,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="rc_asset.h" />
+    <ClInclude Include="rc_barrel.h" />
     <ClInclude Include="rc_bitmap.h" />
+    <ClInclude Include="rc_box.h" />
     <ClInclude Include="rc_car.h" />
     <ClInclude Include="rc_config.h" />
     <ClInclude Include="rc_context.h" />
