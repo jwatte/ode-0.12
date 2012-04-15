@@ -3,9 +3,9 @@
 car {
     type car
     model raycar-unified.bin
-    x -50
-    y 50
-    z 1
+    x 65
+    y -10
+    z 2
     name car
     topSpeed 40
     steerDamping 0.75
@@ -19,9 +19,22 @@ car {
     speedSteer 20
 }
 
+maincam {
+    type followcamera
+    x 65
+    y 0
+    z 5
+    fovy 60
+    height 1.7
+    targetheight 1.4
+    name maincam
+    target car
+    distance 7
+}
+
 track {
     type obstacle
-    model oval-track.bin
+    model asphalt-track-1.bin
     x 0
     y 0
     z 0
@@ -31,54 +44,113 @@ track {
 crate {
     type box
     model crate1.bin
-    x -55
-    y 55
-    z 3.5
+    x 60
+    y -20
+    z 5
     name crate
     mass 10
 }
 crate2 {
     type box
     model crate1.bin
-    x -55
-    y 55
-    z 4.5
+    x 60
+    y -20
+    z 6
     name crate2
     mass 3
 }
 crate3 {
     type box
     model crate1.bin
-    x -55
-    y 55
-    z 5.5
+    x 60
+    y -20
+    z 7
     name crate3
+    mass 1
+}
+crate4 {
+    type box
+    model crate1.bin
+    x 61
+    y -20
+    z 5
+    name crate4
+    mass 3
+}
+crate5 {
+    type box
+    model crate1.bin
+    x 61
+    y -20
+    z 6
+    name crate5
+    mass 1
+}
+crate6 {
+    type box
+    model crate1.bin
+    x 62
+    y -20
+    z 5
+    name crate6
+    mass 1
+}
+crate7 {
+    type box
+    model crate1.bin
+    x 59
+    y -20
+    z 5
+    name crate7
+    mass 3
+}
+crate8 {
+    type box
+    model crate1.bin
+    x 59
+    y -20
+    z 6
+    name crate8
+    mass 1
+}
+crate9 {
+    type box
+    model crate1.bin
+    x 58
+    y -20
+    z 5
+    name crate6
     mass 1
 }
 
 barrel {
     type barrel
     model rustybarrel.bin
-    x -50
-    y 58
-    z 3.5
+    x 62
+    y -24
+    z 5
     name barrel
     mass 5
 }
-
-
-maincam {
-    type followcamera
-    x -3
-    y 11
-    z 10
-    fovy 60
-    height 1.7
-    targetheight 1.4
-    name maincam
-    target car
-    distance 7
+barrel2 {
+    type barrel
+    model rustybarrel.bin
+    x 63
+    y -24
+    z 5
+    name barrel2
+    mass 5
 }
+barrel3 {
+    type barrel
+    model rustybarrel.bin
+    x 62.5
+    y -24
+    z 6.5
+    name barrel3
+    mass 3
+}
+
 
 skybox {
     type skybox

@@ -22,6 +22,7 @@ public:
 private:
     friend class BarrelBody;
     friend class BarrelGeom;
+    friend class BarrelGeom2;
     void calcPhys(Model *m);
     std::string name_;
     std::string modelName_;
@@ -32,6 +33,7 @@ private:
     Model *model_;
     SceneNode *node_;
     BarrelGeom *geom_;
+    BarrelGeom2 *geom2_;
     BarrelBody *body_;
 };
 

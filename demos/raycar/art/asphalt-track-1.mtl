@@ -1,0 +1,59 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 14.04.2012 21:48:17
+
+newmtl grass
+	Ns 10.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.58824 0.58824 0.58824
+	Kd 0.58824 0.58824 0.58824
+	Ks 0.05710 0.05867 0.05490
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/grass.tga
+	map_Kd /code/ode-0.12/demos/raycar/art/grass.tga
+
+newmtl asphalt
+	Ns 32.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.58824 0.58824 0.58824
+	Kd 0.58824 0.58824 0.58824
+	Ks 0.20700 0.20700 0.20700
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/asphalt-1024.jpg
+	map_Kd /code/ode-0.12/demos/raycar/art/asphalt-1024.jpg
+
+newmtl concrete
+	Ns 40.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.58824 0.58824 0.58824
+	Kd 0.58824 0.58824 0.58824
+	Ks 0.26100 0.26100 0.26100
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/concrete-1024.jpg
+	map_Kd /code/ode-0.12/demos/raycar/art/concrete-1024.jpg
+
+newmtl tree1
+	Ns 26.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.58824 0.58824 0.58824
+	Kd 0.58824 0.58824 0.58824
+	Ks 0.20700 0.20700 0.20700
+	Ke 0.00000 0.00000 0.00000
+	map_Ka /code/ode-0.12/demos/raycar/art/tree1-Kd.jpg
+	map_Kd /code/ode-0.12/demos/raycar/art/tree1-Kd.jpg
+	map_d /code/ode-0.12/demos/raycar/art/tree1-Kt.jpg

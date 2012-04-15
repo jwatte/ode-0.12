@@ -37,7 +37,7 @@ public:
 protected:
     friend class SceneGraph;
     virtual void prepare(CameraInfo const &cam) = 0;
-    virtual void render(CameraInfo const &cam) = 0;
+    virtual void render(CameraInfo const &cam, int pass) = 0;
     Matrix xform_;
     std::string name_;
     Bone const *bones_;
@@ -53,6 +53,14 @@ struct CameraInfo
     void getModelView(SceneNode const *node, Matrix *omv) const;
     //  calculated by prepare()
     Matrix mmat_;
+};
+
+enum SceneNodePass
+{
+    p_opaque = 1,
+    p_sky_box = 2,
+    p_transparent = 4,
+    p_num_passes = 3
 };
 
 #endif  //  rc_scenegraph_h

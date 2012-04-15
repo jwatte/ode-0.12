@@ -17,5 +17,7 @@ enum InputKind
 void clearInput();
 void setInput(InputKind kind, bool on);
 bool testInput(InputKind kind);
+void setAnalogInput(bool available, float gas, float brake, float steer);
+bool getAnalogInput(float &oGas, float &oBrake, float &oSteer);
 
 #endif  //  rc_input_h

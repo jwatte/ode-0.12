@@ -11,6 +11,7 @@ class BuiltMaterial
 public:
     virtual void release() = 0;
     virtual void apply() = 0;
+    bool isTransparent_;
 };
 
 class GLContext

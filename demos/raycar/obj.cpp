@@ -41,7 +41,8 @@ struct Mtl
         map_Ka(""),
         map_Kd(""),
         map_Ks(""),
-        map_Ke("")
+        map_Ke(""),
+        map_d("")
     {
     }
     std::string name;
@@ -59,6 +60,7 @@ struct Mtl
     std::string map_Kd;
     std::string map_Ks;
     std::string map_Ke;
+    std::string map_d;
 };
 
 class Obj
@@ -317,6 +319,7 @@ newmtl 01___Default
         test_mtl(line, "map_Kd", obj.curMtl.map_Kd);
         test_mtl(line, "map_Ks", obj.curMtl.map_Ks);
         test_mtl(line, "map_Ke", obj.curMtl.map_Ke);
+        test_mtl(line, "map_d", obj.curMtl.map_d);
     }
 }
 
@@ -562,6 +565,7 @@ void convert_obj_material(std::string const &dir, Mtl const &om, Material &mm)
     convert_mapname(dir, om.map_Kd, mm.maps[mk_diffuse], mk_diffuse);
     convert_mapname(dir, om.map_Ks, mm.maps[mk_specular], mk_specular);
     convert_mapname(dir, om.map_Ke, mm.maps[mk_emissive], mk_emissive);
+    convert_mapname(dir, om.map_d, mm.maps[mk_opacity], mk_opacity);
 }
 
 void read_obj(IxRead *file, IModelData *m, float vScale, std::string const &dir)

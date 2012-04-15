@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <map>
+#include <assert.h>
 
 void glAssertError_(char const *file, int line)
 {
@@ -31,6 +32,7 @@ static GLuint defaultAmbientMap;
 static GLuint defaultDiffuseMap;
 static GLuint defaultSpecularMap;
 static GLuint defaultEmissiveMap;
+static GLuint defaultOpacityMap;
 static GLuint defaultCustomMap;
 
 static GLuint gProgram;
@@ -40,6 +42,7 @@ static GLuint uniformAmbientMap;
 static GLuint uniformDiffuseMap;
 static GLuint uniformSpecularMap;
 static GLuint uniformEmissiveMap;
+static GLuint uniformOpacityMap;
 static GLuint customMap;
 
 
@@ -65,7 +68,15 @@ static GLuint loadTexture(std::string const &name, GLuint def)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
     glAssertError();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bm->width(), bm->height(), 0, bm->bytesPerPixel() == 4 ? GL_BGRA : GL_BGR, GL_UNSIGNED_BYTE, bm->bits());
+    GLuint fmt = GL_LUMINANCE;
+    switch (bm->bytesPerPixel())
+    {
+    case 1: fmt = GL_LUMINANCE; break;
+    case 3: fmt = GL_BGR; break;
+    case 4: fmt = GL_BGRA; break;
+    default: assert(!"unknown bits per pixel"); break;
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bm->width(), bm->height(), 0, fmt, GL_UNSIGNED_BYTE, bm->bits());
     glAssertError();
     glGenerateMipmap(GL_TEXTURE_2D);
     glAssertError();
@@ -79,6 +90,7 @@ public:
     GLMaterial(GLContext *ctx) :
         refCount_(1)
     {
+        isTransparent_ = false;
     }
     ~GLMaterial()
     {
@@ -98,6 +110,7 @@ public:
     GLuint diffuseMap;
     GLuint specularMap;
     GLuint emissiveMap;
+    GLuint opacityMap;
 };
 
 void GLMaterial::configure(Material const &mtl)
@@ -111,6 +124,8 @@ void GLMaterial::configure(Material const &mtl)
     diffuseMap = loadTexture(mtl.maps[mk_diffuse].name, defaultDiffuseMap);
     specularMap = loadTexture(mtl.maps[mk_specular].name, defaultSpecularMap);
     emissiveMap = loadTexture(mtl.maps[mk_emissive].name, defaultEmissiveMap);
+    opacityMap = loadTexture(mtl.maps[mk_opacity].name, defaultOpacityMap);
+    isTransparent_ = opacityMap != defaultOpacityMap;
 }
 
 void GLMaterial::apply()
@@ -145,11 +160,30 @@ glAssertError();
     glBindTexture(GL_TEXTURE_2D, emissiveMap);
 glAssertError();
 
+    glActiveTexture(GL_TEXTURE4);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, opacityMap);
+glAssertError();
+
     glProgramUniform1i(gProgram, uniformAmbientMap, 0);
     glProgramUniform1i(gProgram, uniformDiffuseMap, 1);
     glProgramUniform1i(gProgram, uniformSpecularMap, 2);
     glProgramUniform1i(gProgram, uniformEmissiveMap, 3);
+    glProgramUniform1i(gProgram, uniformOpacityMap, 4);
 glAssertError();
+
+    if (opacityMap != defaultOpacityMap)
+    {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER, 0.04f);
+    }
+    else
+    {
+        glDisable(GL_BLEND);
+        glDisable(GL_ALPHA_TEST);
+    }
 }
 
 void GLMaterial::release()
@@ -251,6 +285,8 @@ static void compileShaders()
     glAssertError();
     uniformEmissiveMap = glGetUniformLocation(gProgram, "texEmissive");
     glAssertError();
+    uniformOpacityMap = glGetUniformLocation(gProgram, "texOpacity");
+    glAssertError();
 
     gCustomProgram = compileShaderNames("custom-vs.glsl", "custom-fs.glsl");
     customMap = glGetUniformLocation(gCustomProgram, "texCustom");
@@ -272,6 +308,7 @@ void GLContext::realize(int width, int height)
     initDefaultMap(defaultDiffuseMap, 0x808080);
     initDefaultMap(defaultSpecularMap, 0x808080);
     initDefaultMap(defaultEmissiveMap, 0x000000);
+    initDefaultMap(defaultOpacityMap, 0xffffff);
     initDefaultMap(defaultCustomMap, 0xffffff);
     compileShaders();
 }

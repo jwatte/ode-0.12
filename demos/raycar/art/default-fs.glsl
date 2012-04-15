@@ -4,6 +4,7 @@ uniform sampler2D texAmbient;
 uniform sampler2D texDiffuse;
 uniform sampler2D texSpecular;
 uniform sampler2D texEmissive;
+uniform sampler2D texOpacity;
 
 varying vec3 vNormal;
 varying vec4 vEyePos;
@@ -22,6 +23,7 @@ void main(void)
         gl_FrontLightProduct[0].diffuse * texture2D(texDiffuse, tuv) * NdotL +
         gl_FrontLightProduct[0].specular * texture2D(texSpecular, tuv) * sPow +
         gl_FrontMaterial.emission * texture2D(texEmissive, tuv);
+    color[3] = texture2D(texOpacity, tuv)[0];
     gl_FragColor = color;
     // gl_FragColor = vec4(vNormal, 1) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
 }

@@ -3,14 +3,35 @@
 #include "rc_context.h"
 #include "rc_model.h"
 
+#include <GL/GLEW.h>
+
 #include <string>
 #include <set>
-#include <GL/GLEW.h>
+#include <algorithm>
 
 
 static std::set<SceneNode *> scene_;
 static GLContext *ctx_;
 
+class CompareNearFar
+{
+public:
+    int operator()(std::pair<float, SceneNode *> const &a, std::pair<float, SceneNode *> const &b) const
+    {
+        float d = a.first - b.first;
+        return d < 0;
+    }
+};
+
+class CompareFarNear
+{
+public:
+    int operator()(std::pair<float, SceneNode *> const &a, std::pair<float, SceneNode *> const &b) const
+    {
+        float d = b.first - a.first;
+        return d < 0;
+    }
+};
 
 class ModelSceneNode : public SceneNode
 {
@@ -19,12 +40,13 @@ public:
         SceneNode(name),
         mdl_(mdl)
     {
+        pass_ = p_opaque | (mdl_->hasTransparency() ? p_transparent : 0);
     }
     Model *mdl_;
     virtual void prepare(CameraInfo const &cam)
     {
     }
-    virtual void render(CameraInfo const &cam)
+    virtual void render(CameraInfo const &cam, int pass)
     {
     glAssertError();
         Matrix m;
@@ -40,7 +62,7 @@ public:
                 throw std::runtime_error("ModelSceneNode configured with wrong boneCount_");
             }
         }
-        mdl_->issue(m, bones_);
+        mdl_->issue(m, bones_, pass == p_transparent);
     }
 };
 
@@ -50,9 +72,9 @@ public:
     SkyModelSceneNode(std::string const &name, Model *mdl) :
         ModelSceneNode(name, mdl)
     {
-        pass_ = 2;
+        pass_ = p_sky_box;
     }
-    virtual void render(CameraInfo const &cam)
+    virtual void render(CameraInfo const &cam, int pass)
     {
     glAssertError();
         Matrix m;
@@ -69,7 +91,7 @@ public:
                 throw std::runtime_error("ModelSceneNode configured with wrong boneCount_");
             }
         }
-        mdl_->issue(m, bones_);
+        mdl_->issue(m, bones_, false);
     }
 };
 
@@ -95,14 +117,14 @@ public:
         cam_->mmat_.setRow(0, right);
         cam_->mmat_.setRow(1, up);
         cam_->mmat_.setRow(2, back);
-        Vec3 zero;
-        cam_->mmat_.setTranslation(zero);
-        cam_->mmat_.setRow(3, zero);
-        subFrom(zero, pos());
-        multiply(cam_->mmat_, zero);
-        cam_->mmat_.setTranslation(zero);
+        Vec3 zPos;
+        cam_->mmat_.setTranslation(zPos);
+        cam_->mmat_.setRow(3, zPos);
+        subFrom(zPos, pos());
+        multiply(cam_->mmat_, zPos);
+        cam_->mmat_.setTranslation(zPos);
     }
-    virtual void render(CameraInfo const &cam)
+    virtual void render(CameraInfo const &cam, int pass)
     {
     }
 };
@@ -113,7 +135,7 @@ SceneNode::SceneNode(std::string const &name) :
     name_(name),
     bones_(0),
     boneCount_(0),
-    pass_(1)
+    pass_(p_opaque)
 {
 }
 
@@ -186,6 +208,7 @@ void SceneGraph::present(SceneNode *camera)
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT, GL_FILL);
+    glDisable(GL_BLEND);
     glAssertError();
 
     //  setup camera
@@ -197,7 +220,7 @@ void SceneGraph::present(SceneNode *camera)
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    Vec3 pos(-1, -2, 3);
+    Vec3 pos(1, 2, 3);
     normalize(pos);
     Matrix m(ci.mmat_);
     m.setTranslation(Vec3(0, 0, 0));
@@ -234,15 +257,38 @@ void SceneGraph::present(SceneNode *camera)
     }
 
     //  render all objects
-    for (int pass = 1; pass < 3; ++pass)
+    std::vector<std::pair<float, SceneNode *> > toDraw;
+    toDraw.reserve(8000);
+    Vec3 camBack(ci.mmat_.getColumn(2));
+
+    for (int pno = 0; pno < p_num_passes; ++pno)
     {
+        int pass = (1 << pno);
+        toDraw.clear();
         for (std::set<SceneNode*>::iterator ptr(scene_.begin()), end(scene_.end());
             ptr != end; ++ptr)
         {
-            if ((*ptr)->pass_ == pass && (*ptr) != camera)
+            if (((*ptr)->pass_ & pass) != 0 && (*ptr) != camera)
             {
-                (*ptr)->render(ci);
+                toDraw.push_back(std::pair<float, SceneNode *>(dot((*ptr)->pos(), camBack), *ptr));
             }
+        }
+        if (pass == p_transparent)
+        {
+            //  transparency is sorted back-to-front
+            std::sort(toDraw.begin(), toDraw.end(), CompareFarNear());
+        }
+        else
+        {
+            //  everything else is sorted front-to-back, to get early z rejection
+            std::sort(toDraw.begin(), toDraw.end(), CompareNearFar());
+        }
+        for (std::vector<std::pair<float, SceneNode *> >::iterator
+            ptr(toDraw.begin()), end(toDraw.end());
+            ptr != end;
+            ++ptr)
+        {
+            (*ptr).second->render(ci, pass);
         }
     }
 

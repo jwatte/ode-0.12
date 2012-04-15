@@ -212,7 +212,7 @@
     <ClCompile Include="obj.cpp" />
     <ClCompile Include="obstacle.cpp" />
     <ClCompile Include="ode.cpp" />
-    <ClCompile Include="raycar.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="math.cpp" />
     <ClCompile Include="reference.cpp" />
     <ClCompile Include="scene.cpp" />

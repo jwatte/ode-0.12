@@ -219,38 +219,68 @@ void Car::on_step()
     }
     node_->setBones(&bones_[0], bones_.size());
 
-    /* parse gas/brake input */
-    if (testInput(ik_backward)) {
-        gas_ = gas_ - 0.05f;
-        if (gas_ < -0.5f) {
-            gas_ = -0.5f;
+    //  todo: brake is not a recognized control right now
+    float gas = 0, brake = 0, steer = 0;
+    if (!getAnalogInput(gas, brake, steer))
+    {
+        /* parse gas/brake input */
+        if (testInput(ik_backward)) {
+            gas_ = gas_ - 0.05f;
         }
-    }
-    else if (testInput(ik_forward)) {
-        gas_ = gas_ + 0.01f;
-        if (gas_ > 1) {
-            gas_ = 1;
+        else if (testInput(ik_forward)) {
+            gas_ = gas_ + 0.01f;
         }
-    }
-    else {
-        if (gas_ > 0) {
-            gas_ = gas_ - 0.01f;
+        else {
+            if (gas_ > 0) {
+                gas_ = gas_ - 0.01f;
+            }
+            else if (gas_ < 0) {
+                gas_ = gas_ + 0.02f;
+            }
+            if (gas_ > -0.02f && gas_ < 0.02f) {
+                gas_ = 0;
+            }
         }
-        else if (gas_ < 0) {
-            gas_ = gas_ + 0.02f;
-        }
-        if (gas_ > -0.02f && gas_ < 0.02f) {
-            gas_ = 0;
-        }
-    }
 
-    /* parse left/right input */
-    float sd = 0;
-    if (testInput(ik_left)) {
-        sd -= 1;
+        /* parse left/right input */
+        float sd = 0;
+        if (testInput(ik_left)) {
+            sd -= 1;
+        }
+        if (testInput(ik_right)) {
+            sd += 1;
+        }
+        if (sd == 0) {
+            if (steer_ > 0) {
+                steer_ -= 0.1f;
+            }
+            else if (steer_ < 0) {
+                steer_ += 0.1f;
+            }
+            if (steer_ >= -0.1f && steer_ <= 0.1f) {
+                steer_ = 0;
+            }
+        }
+        else {
+            steer_ = sd - (sd - steer_) * steerDamping_;
+        }
     }
-    if (testInput(ik_right)) {
-        sd += 1;
+    else
+    {
+        gas_ = gas - brake;
+        steer_ = steer;
+    }
+    if (gas_ > 1) {
+        gas_ = 1;
+    }
+    if (gas_ < -0.5f) {
+        gas_ = -0.5f;
+    }
+    if (steer_ > 1) {
+        steer_ = 1;
+    }
+    else if (steer_ < -1) {
+        steer_ = -1;
     }
     bump_ = false;
     if (lastBump_ > 0) {
@@ -259,26 +289,6 @@ void Car::on_step()
     if (canBump_ && lastBump_ == 0 && testInput(ik_trigger)) {
         bump_ = true;
         lastBump_ = 100;
-    }
-    if (sd == 0) {
-        if (steer_ > 0) {
-            steer_ -= 0.1f;
-        }
-        else if (steer_ < 0) {
-            steer_ += 0.1f;
-        }
-        if (steer_ >= -0.1f && steer_ <= 0.1f) {
-            steer_ = 0;
-        }
-    }
-    else {
-        steer_ = sd - (sd - steer_) * steerDamping_;
-        if (steer_ > 1) {
-            steer_ = 1;
-        }
-        else if (steer_ < -1) {
-            steer_ = -1;
-        }
     }
 }
 
@@ -434,6 +444,7 @@ void CarBody::onStep()
         dBodyAddForce(car_->body_, steerFwd.x * 10000, steerFwd.y * 10000, 100000);
         dBodyAddRelTorque(car_->body_, 0, 10000, 0);
         car_->canBump_ = false;
+        car_->bump_ = false;
     }
 }
 

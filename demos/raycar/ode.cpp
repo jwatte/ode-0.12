@@ -60,55 +60,58 @@ static void nearCallback(void *, dGeomID o1, dGeomID o2)
         dSpaceCollide2(o2, o1, 0, &nearCallback);
         return;
     }
-    dContact cg[20];
-    memset(cg, 0, sizeof(cg));
-    int n = dCollide(o1, o2, 20, &cg[0].geom, (int)sizeof(dContact));
-    for (int i = 0; i < n; ++i)
+    dBodyID bid1 = dGeomGetBody(o1);
+    dBodyID bid2 = dGeomGetBody(o2);
+    if ((bid1 && dBodyIsEnabled(bid1)) || (bid2 && dBodyIsEnabled(bid2)))
     {
-        Vec3 posi(cg[i].geom.pos);
-        Vec3 normi(cg[i].geom.normal);
-        bool gotCopy = false;
-        for (int j = 0; j < i; ++j)
+        dContact cg[20];
+        memset(cg, 0, sizeof(cg));
+        int n = dCollide(o1, o2, 20, &cg[0].geom, (int)sizeof(dContact));
+        for (int i = 0; i < n; ++i)
         {
-            Vec3 posj(cg[j].geom.pos);
-            subFrom(posj, posi);
-            //  contacts that are within 4" (0.1m) of each other are merged
-            if (lengthSquared(posj) < 0.01f)
+            Vec3 posi(cg[i].geom.pos);
+            Vec3 normi(cg[i].geom.normal);
+            bool gotCopy = false;
+            for (int j = 0; j < i; ++j)
             {
-                Vec3 normj(cg[j].geom.normal);
-                if (dot(normi, normj) > 0.95f)
+                Vec3 posj(cg[j].geom.pos);
+                subFrom(posj, posi);
+                //  contacts that are within 4" (0.1m) of each other are merged
+                if (lengthSquared(posj) < 0.01f)
                 {
-                    //  normals similar -- got a similar contact
-                    gotCopy = true;
-                    break;
+                    Vec3 normj(cg[j].geom.normal);
+                    if (dot(normi, normj) > 0.95f)
+                    {
+                        //  normals similar -- got a similar contact
+                        gotCopy = true;
+                        break;
+                    }
                 }
             }
-        }
-        if (!gotCopy)
-        {
-            cg[i].surface.mu = 1.5f;
-            cg[i].surface.mode = dContactApprox1;
-            dBodyID b1 = dGeomGetBody(o1);
-            dBodyID b2 = dGeomGetBody(o2);
-            OdeBody *bp1 = b1 ? (OdeBody *)dBodyGetData(b1) : 0;
-            OdeBody *bp2 = b2 ? (OdeBody *)dBodyGetData(b2) : 0;
-            OdeGeom *gp1 = (OdeGeom *)dGeomGetData(o1);
-            OdeGeom *gp2 = (OdeGeom *)dGeomGetData(o2);
-            if (bp2)
-                if (!bp2->onContact2(bp1, gp2, gp1, &cg[i]))
-                    continue;
-            if (bp1)
-                if (!bp1->onContact1(bp2, gp1, gp2, &cg[i]))
-                    continue;
-            if (gp2)
-                if (!gp2->onContact2(gp1, bp1, &cg[i]))
-                    continue;
-            if (gp1)
-                if (!gp1->onContact1(gp2, bp2, &cg[i]))
-                    continue;
-            dJointID jid = dJointCreateContact(gWorld, gJointGroup, &cg[i]);
-            dJointAttach(jid, dGeomGetBody(o1), dGeomGetBody(o2));
-            addDebugLine(Vec3(cg[i].geom.pos), Vec3(cg[i].geom.normal), Rgba(1, 1, 0, 1));
+            if (!gotCopy)
+            {
+                cg[i].surface.mu = 1.5f;
+                cg[i].surface.mode = dContactApprox1;
+                OdeBody *bp1 = bid1 ? (OdeBody *)dBodyGetData(bid1) : 0;
+                OdeBody *bp2 = bid2 ? (OdeBody *)dBodyGetData(bid2) : 0;
+                OdeGeom *gp1 = (OdeGeom *)dGeomGetData(o1);
+                OdeGeom *gp2 = (OdeGeom *)dGeomGetData(o2);
+                if (bp2)
+                    if (!bp2->onContact2(bp1, gp2, gp1, &cg[i]))
+                        continue;
+                if (bp1)
+                    if (!bp1->onContact1(bp2, gp1, gp2, &cg[i]))
+                        continue;
+                if (gp2)
+                    if (!gp2->onContact2(gp1, bp1, &cg[i]))
+                        continue;
+                if (gp1)
+                    if (!gp1->onContact1(gp2, bp2, &cg[i]))
+                        continue;
+                dJointID jid = dJointCreateContact(gWorld, gJointGroup, &cg[i]);
+                dJointAttach(jid, dGeomGetBody(o1), dGeomGetBody(o2));
+                addDebugLine(Vec3(cg[i].geom.pos), Vec3(cg[i].geom.normal), Rgba(1, 1, 0, 1));
+            }
         }
     }
 }

@@ -19,6 +19,10 @@ public:
         Vec3 pos(b->pos());
         dBodySetPosition(id_, pos.x + b->center_.x, pos.y + b->center_.y, pos.z + b->center_.z);
         dBodySetData(id_, this);
+        dBodySetAutoDisableFlag(id_, 1);
+        dBodySetAutoDisableAngularThreshold(id_, 0.001f);
+        dBodySetAutoDisableLinearThreshold(id_, 0.01f);
+        dBodySetAutoDisableAverageSamplesCount(id_, 5);
     }
     Box *b_;
 };

@@ -3,7 +3,7 @@ ALL_CONTENT := \
 	content/raycar-unified.bin \
 	content/crate1.bin \
 	content/rustybarrel.bin \
-	content/oval-track.bin \
+	content/asphalt-track-1.bin \
 	content/lostvalley-skybox.bin \
 	content/raycar.scn \
 	content/default-vs.glsl \

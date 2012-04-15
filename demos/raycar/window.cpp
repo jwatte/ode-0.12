@@ -15,6 +15,9 @@ double timerOffset;
 extern HINSTANCE hInstance;
 HDC hDC;
 HGLRC hGLRC;
+#include <XInput.h>
+bool hasXInput;
+#pragma comment(lib, "XInput.lib")
 #else
 
 #endif
@@ -240,6 +243,11 @@ void WCreateHwnd(int width, int height, char const *title)
     {
         error("OpenGL driver does not support OpenGL 2.0 with shaders.");
     }
+    XINPUT_STATE xst;
+    if (ERROR_SUCCESS == XInputGetState(0, &xst))
+    {
+        hasXInput = true;
+    }
 }
 
 #endif
@@ -320,16 +328,63 @@ void renderWindow()
 #endif
 }
 
+float mapRange(int val, int zero, int one)
+{
+    if (val < zero) return 0;
+    if (val > one) return 1;
+    return (float)(val - zero) / (float)(one - zero);
+}
+
+float mapRange2(int val, int mone, int mzero, int pzero, int pone)
+{
+    if (val < mone) return -1;
+    else if (val < mzero) return (float)(val - mzero) / (float)(mzero - mone);
+    else if (val < pzero) return 0;
+    else if (val < pone) return (float)(val - pzero) / (float)(pone - pzero);
+    else return 1;
+}
+
 void pollInput()
 {
+#if defined(_WINDOWS)
     MSG msg;
-    if (!active)
-    {
+    if (!active) {
         ::SleepEx(50, TRUE);
     }
-    while (::PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
-    {
+    while (::PeekMessageW(&msg, 0, 0, 0, PM_REMOVE)) {
         ::TranslateMessage(&msg);
         ::DispatchMessageW(&msg);
     }
+    if (hasXInput) {
+        XINPUT_STATE xst;
+        if (ERROR_SUCCESS == XInputGetState(0, &xst)) {
+            setAnalogInput(
+                xst.Gamepad.bRightTrigger != 0 || xst.Gamepad.bLeftTrigger != 0 || xst.Gamepad.sThumbRX != 0,
+                mapRange(xst.Gamepad.bRightTrigger, 30, 240),
+                mapRange(xst.Gamepad.bLeftTrigger, 30, 240),
+                mapRange2(xst.Gamepad.sThumbLX, -25000, -4000, 4000, 25000));
+            static struct {
+                unsigned short bitmask;
+                InputKind eval;
+            }
+            mapping[] = {
+                { XINPUT_GAMEPAD_DPAD_UP, ik_forward },
+                { XINPUT_GAMEPAD_DPAD_DOWN, ik_backward },
+                { XINPUT_GAMEPAD_DPAD_RIGHT, ik_right },
+                { XINPUT_GAMEPAD_DPAD_LEFT, ik_left },
+                { XINPUT_GAMEPAD_A, ik_trigger },
+                { XINPUT_GAMEPAD_START, ik_start },
+                { XINPUT_GAMEPAD_BACK, ik_back },
+            };
+            for (size_t i = 0; i < sizeof(mapping)/sizeof(mapping[0]); ++i) {
+                if (mapping[i].bitmask & xst.Gamepad.wButtons) {
+                    setInput(mapping[i].eval, true);
+                }
+                else {
+                    setInput(mapping[i].eval, false);
+                }
+            }
+        }
+    }
+#endif
 }

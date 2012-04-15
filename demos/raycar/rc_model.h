@@ -124,13 +124,16 @@ public:
     void setBones(Bone const *bones, size_t count);
 
     void buildMaterials();
+    bool hasTransparency() const;
 
     TriangleBatch const *batches(size_t *oCount);
     Material const *materials(size_t *oCount);
+    //  todo: it's not good enough to return Bones as the interface for sub-Models,
+    //  because sub-Models may need to be transparency sorted.
     Bone const *bones(size_t *oCount);
     Bone const *boneNamed(std::string const &name);
     void bind();
-    void issue(Matrix const &modelview, Bone const *bones = 0);
+    void issue(Matrix const &modelview, Bone const *bones = 0, bool transparent = false);
 
     void const *vertices() const;
     size_t vertexSize() const;
