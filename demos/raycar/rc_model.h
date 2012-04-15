@@ -133,7 +133,7 @@ public:
     Bone const *bones(size_t *oCount);
     Bone const *boneNamed(std::string const &name);
     void bind();
-    void issue(Matrix const &modelview, Bone const *bones = 0, bool transparent = false);
+    void issueBatch(Matrix const &modelview, size_t ix, Bone const *bones);
 
     void const *vertices() const;
     size_t vertexSize() const;

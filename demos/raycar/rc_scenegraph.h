@@ -3,6 +3,7 @@
 #define rc_scenegraph_h
 
 #include "rc_math.h"
+#include <assert.h>
 
 class GLContext;
 class Model;
@@ -27,13 +28,28 @@ class SceneNode
 {
 public:
     SceneNode(std::string const &name);
-    ~SceneNode();
-    Vec3 pos() const;
+    virtual ~SceneNode();
+    Vec3 worldPos() const;
     void setPos(Vec3 const &pos);
     Matrix const &transform() const;
+    void worldTransform(Matrix &oMat) const;
     void setTransform(Matrix const &m);
-    void setBones(Bone const *bones, size_t cnt);
+    virtual void setBones(Bone const *bones, size_t cnt);
     std::string const &name() const;
+    void setParent(SceneNode *sn);
+    SceneNode *parent() const;
+    template<typename T> T *as() {
+#if !defined(NDEBUG)
+        assert(dynamic_cast<T *>(this) != NULL);
+#endif
+        return static_cast<T *>(this);
+    }
+    template<typename T> T const *as() const {
+#if !defined(NDEBUG)
+        assert(dynamic_cast<T const *>(this) != NULL);
+#endif
+        return static_cast<T const *>(this);
+    }
 protected:
     friend class SceneGraph;
     virtual void prepare(CameraInfo const &cam) = 0;
@@ -43,11 +59,13 @@ protected:
     Bone const *bones_;
     size_t boneCount_;
     int pass_;
+    SceneNode *parent_;
 };
 
 struct CameraInfo
 {
     Vec3 lookAt;
+    Vec3 back;
     float fovY;
 
     void getModelView(SceneNode const *node, Matrix *omv) const;

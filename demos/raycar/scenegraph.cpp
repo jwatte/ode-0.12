@@ -8,6 +8,7 @@
 #include <string>
 #include <set>
 #include <algorithm>
+#include <assert.h>
 
 
 static std::set<SceneNode *> scene_;
@@ -19,7 +20,7 @@ public:
     int operator()(std::pair<float, SceneNode *> const &a, std::pair<float, SceneNode *> const &b) const
     {
         float d = a.first - b.first;
-        return d < 0;
+        return d > 0;
     }
 };
 
@@ -29,7 +30,43 @@ public:
     int operator()(std::pair<float, SceneNode *> const &a, std::pair<float, SceneNode *> const &b) const
     {
         float d = b.first - a.first;
-        return d < 0;
+        return d > 0;
+    }
+};
+
+class ModelBatchSceneNode : public SceneNode
+{
+public:
+    ModelBatchSceneNode(std::string const &name, Model *mdl, size_t batch) :
+        SceneNode(name),
+        mdl_(mdl),
+        batch_(batch)
+    {
+        pass_ = batchIsTransparent(mdl, batch) ? p_transparent : p_opaque;
+        scene_.insert(this);
+    }
+    Model *mdl_;
+    size_t batch_;
+    virtual void prepare(CameraInfo const &cam)
+    {
+    }
+    virtual void render(CameraInfo const &cam, int pass)
+    {
+        Matrix m;
+        cam.getModelView(this, &m);
+        glLoadTransposeMatrixf((float *)m.rows);
+        mdl_->bind();
+        mdl_->issueBatch(m, batch_, bones_);
+        glAssertError();
+    }
+    static bool batchIsTransparent(Model *mdl, size_t batch)
+    {
+        size_t cnt = 0;
+        TriangleBatch const *b = mdl->batches(&cnt);
+        assert(batch < cnt);
+        Material const *mtl = mdl->materials(&cnt);
+        assert(b[batch].material < cnt);
+        return mtl[b[batch].material].maps[mk_opacity].name[0] != 0;
     }
 };
 
@@ -40,19 +77,77 @@ public:
         SceneNode(name),
         mdl_(mdl)
     {
-        pass_ = p_opaque | (mdl_->hasTransparency() ? p_transparent : 0);
+        pass_ = 0;
+        size_t cnt = 0;
+        TriangleBatch const *batches = mdl->batches(&cnt);
+        for (size_t i = 0; i != cnt; ++i)
+        {
+            char buf[1024];
+            _snprintf_s(buf, 1024, "%s:batch-%d", name.c_str(), i);
+            //  all model batch scene nodes are relative to me
+            ModelBatchSceneNode *mbsn = new ModelBatchSceneNode(buf, mdl, i);
+            mbsn->setParent(this);
+            batchNodes_.push_back(mbsn);
+        }
+    }
+    ~ModelSceneNode()
+    {
+        for (std::vector<ModelBatchSceneNode *>::iterator
+            ptr(batchNodes_.begin()),
+            end(batchNodes_.end());
+            ptr != end;
+            ++ptr)
+        {
+            delete *ptr;
+        }
+    }
+    Model *mdl_;
+    std::vector<ModelBatchSceneNode *> batchNodes_;
+    virtual void prepare(CameraInfo const &cam)
+    {
+        size_t sz = 0;
+        Bone const *mBones = mdl_->bones(&sz);
+        if (bones_ != NULL)
+        {
+            if (sz != boneCount_)
+            {
+                throw std::runtime_error("ModelSceneNode configured with wrong boneCount_");
+            }
+            mBones = bones_;
+        }
+        size_t cnt;
+        TriangleBatch const *mtbs = mdl_->batches(&cnt);
+        for (std::vector<ModelBatchSceneNode *>::iterator
+            ptr(batchNodes_.begin()),
+            end(batchNodes_.end());
+            ptr != end;
+            ++ptr)
+        {
+            ModelBatchSceneNode *mbsn = *ptr;
+            TriangleBatch const &tb = mtbs[mbsn->batch_];
+            Matrix m;
+            get_bone_transform(mBones, tb.bone, m);
+            mbsn->setTransform(m);
+        }
+    }
+    virtual void render(CameraInfo const &cam, int pass)
+    {
+        assert(!"ModelSceneNode is not directly renderable");
+    }
+};
+
+class SkyModelSceneNode : public SceneNode
+{
+public:
+    SkyModelSceneNode(std::string const &name, Model *mdl) :
+        SceneNode(name)
+    {
+        pass_ = p_sky_box;
+        mdl_ = mdl;
     }
     Model *mdl_;
     virtual void prepare(CameraInfo const &cam)
     {
-    }
-    virtual void render(CameraInfo const &cam, int pass)
-    {
-    glAssertError();
-        Matrix m;
-        cam.getModelView(this, &m);
-        glLoadTransposeMatrixf(&m.rows[0][0]);
-        mdl_->bind();
         if (bones_ != NULL)
         {
             size_t sz = 0;
@@ -62,17 +157,6 @@ public:
                 throw std::runtime_error("ModelSceneNode configured with wrong boneCount_");
             }
         }
-        mdl_->issue(m, bones_, pass == p_transparent);
-    }
-};
-
-class SkyModelSceneNode : public ModelSceneNode
-{
-public:
-    SkyModelSceneNode(std::string const &name, Model *mdl) :
-        ModelSceneNode(name, mdl)
-    {
-        pass_ = p_sky_box;
     }
     virtual void render(CameraInfo const &cam, int pass)
     {
@@ -80,18 +164,13 @@ public:
         Matrix m;
         cam.getModelView(this, &m);
         m.setTranslation(Vec3(0, 0, 0));
-        glLoadTransposeMatrixf(&m.rows[0][0]);
         mdl_->bind();
-        if (bones_ != NULL)
+        size_t cnt;
+        TriangleBatch const *tb = mdl_->batches(&cnt);
+        for (size_t i = 0; i != cnt; ++i)
         {
-            size_t sz = 0;
-            mdl_->bones(&sz);
-            if (sz != boneCount_)
-            {
-                throw std::runtime_error("ModelSceneNode configured with wrong boneCount_");
-            }
+            mdl_->issueBatch(m, i, bones_);
         }
-        mdl_->issue(m, bones_, false);
     }
 };
 
@@ -106,9 +185,11 @@ public:
     CameraInfo *cam_;
     virtual void prepare(CameraInfo const &cam)
     {
-        Vec3 back(pos());
+        Vec3 wPos(worldPos());
+        Vec3 back(wPos);
         subFrom(back, cam_->lookAt);
         normalize(back);
+        cam_->back = back;
         Vec3 up(0, 0, 1);
         Vec3 right;
         cross(right, up, back);
@@ -120,7 +201,7 @@ public:
         Vec3 zPos;
         cam_->mmat_.setTranslation(zPos);
         cam_->mmat_.setRow(3, zPos);
-        subFrom(zPos, pos());
+        subFrom(zPos, wPos);
         multiply(cam_->mmat_, zPos);
         cam_->mmat_.setTranslation(zPos);
     }
@@ -135,7 +216,8 @@ SceneNode::SceneNode(std::string const &name) :
     name_(name),
     bones_(0),
     boneCount_(0),
-    pass_(p_opaque)
+    pass_(p_opaque),
+    parent_(0)
 {
 }
 
@@ -144,9 +226,11 @@ SceneNode::~SceneNode()
     scene_.erase(scene_.find(this));
 }
 
-Vec3 SceneNode::pos() const
+Vec3 SceneNode::worldPos() const
 {
-    return Vec3(xform_.rows[0][3], xform_.rows[1][3], xform_.rows[2][3]);
+    Matrix wx;
+    worldTransform(wx);
+    return wx.translation();
 }
 
 void SceneNode::setPos(Vec3 const &pos)
@@ -159,9 +243,29 @@ Matrix const &SceneNode::transform() const
     return xform_;
 }
 
+void SceneNode::worldTransform(Matrix &oMat) const
+{
+    if (!parent_) {
+        oMat = xform_;
+        return;
+    }
+    parent_->worldTransform(oMat);
+    multiply(oMat, xform_, oMat);
+}
+
 void SceneNode::setTransform(Matrix const &m)
 {
     xform_ = m;
+}
+
+void SceneNode::setParent(SceneNode *parent)
+{
+    parent_ = parent;
+}
+
+SceneNode *SceneNode::parent() const
+{
+    return parent_;
 }
 
 void SceneNode::setBones(::Bone const *bones, size_t count)
@@ -189,7 +293,7 @@ SceneNode *SceneGraph::addModel(std::string const &name, Model *mdl)
 
 SceneNode *SceneGraph::addSkyModel(std::string const &name, Model *mdl)
 {
-    ModelSceneNode *ret = new SkyModelSceneNode(name, mdl);
+    SkyModelSceneNode *ret = new SkyModelSceneNode(name, mdl);
     scene_.insert(ret);
     return ret;
 }
@@ -209,12 +313,13 @@ void SceneGraph::present(SceneNode *camera)
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT, GL_FILL);
     glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
     glAssertError();
 
     //  setup camera
     CameraInfo ci;
     camera->prepare(ci);
-    ci = *static_cast<CameraSceneNode *>(camera)->cam_;
+    ci = *camera->as<CameraSceneNode>()->cam_;
 
     glEnable(GL_LIGHT0);
     glMatrixMode(GL_MODELVIEW);
@@ -257,9 +362,9 @@ void SceneGraph::present(SceneNode *camera)
     }
 
     //  render all objects
-    std::vector<std::pair<float, SceneNode *> > toDraw;
+    static std::vector<std::pair<float, SceneNode *> > toDraw;
     toDraw.reserve(8000);
-    Vec3 camBack(ci.mmat_.getColumn(2));
+    Vec3 camBack(ci.back);
 
     for (int pno = 0; pno < p_num_passes; ++pno)
     {
@@ -268,9 +373,9 @@ void SceneGraph::present(SceneNode *camera)
         for (std::set<SceneNode*>::iterator ptr(scene_.begin()), end(scene_.end());
             ptr != end; ++ptr)
         {
-            if (((*ptr)->pass_ & pass) != 0 && (*ptr) != camera)
+            if (((*ptr)->pass_ & pass) != 0)
             {
-                toDraw.push_back(std::pair<float, SceneNode *>(dot((*ptr)->pos(), camBack), *ptr));
+                toDraw.push_back(std::pair<float, SceneNode *>(dot((*ptr)->worldPos(), camBack), *ptr));
             }
         }
         if (pass == p_transparent)
@@ -315,5 +420,13 @@ Matrix SceneGraph::getCameraModelView(SceneNode *node)
 
 void CameraInfo::getModelView(SceneNode const *node, Matrix *omv) const
 {
-    multiply(mmat_, node != 0 ? node->transform() : Matrix::identity, *omv);
+    if (node != 0) {
+        Matrix wx;
+        node->worldTransform(wx);
+        multiply(mmat_, wx, *omv);
+    }
+    else
+    {
+        *omv = mmat_;
+    }
 }

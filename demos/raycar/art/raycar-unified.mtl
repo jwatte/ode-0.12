@@ -1,5 +1,5 @@
 # 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
-# File Created: 14.04.2012 19:06:19
+# File Created: 15.04.2012 15:57:44
 
 newmtl chassis
 	Ns 33.00000
@@ -14,6 +14,19 @@ newmtl chassis
 	Ke 0.00000 0.00000 0.00000
 	map_Ka /code/ode-0.12/demos/raycar/art/raycar.tga
 	map_Kd /code/ode-0.12/demos/raycar/art/raycar.tga
+
+newmtl bubble
+	Ns 33.00000
+	Ni 1.50000
+	d 1.00000
+	Tr 0.00000
+	Tf 1.00000 1.00000 1.00000 
+	illum 2
+	Ka 0.58824 0.69804 0.75294
+	Kd 0.58824 0.69804 0.75294
+	Ks 0.59400 0.59400 0.59400
+	Ke 0.00000 0.00000 0.00000
+	map_d /code/ode-0.12/demos/raycar/art/grunge-transparency.jpg
 
 newmtl 02___Default
 	Ns 10.00000

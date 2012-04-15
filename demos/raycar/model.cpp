@@ -326,25 +326,18 @@ void Model::applyBoneTransform(Bone const *bones, size_t bix, Matrix &m) const
     multiply(m, *(Matrix const *)bones[bix].xform, m);
 }
 
-void Model::issue(Matrix const &modelview, Bone const *bones, bool transparent)
+void Model::issueBatch(Matrix const &modelView, size_t batch, Bone const *bones)
 {
+    TriangleBatch const *ptr = &batches_[batch];
+    BuiltMaterial *bm = builtMaterials_[(*ptr).material];
+    //Matrix mv(modelView);
+    //applyBoneTransform(bones ? bones : &bones_[0], (*ptr).bone, mv);
+    glLoadTransposeMatrixf((float *)modelView.rows);
+    builtMaterials_[(*ptr).material]->apply();
+    glDrawRangeElements(GL_TRIANGLES, (*ptr).minVertexIndex, (*ptr).maxVertexIndex, (*ptr).numTriangles * 3, 
+        (indexBits_ == 32) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT,
+        (void *)((*ptr).firstTriangle * 3 * indexBits_ >> 3));
 glAssertError();
-    for (std::vector<TriangleBatch>::iterator ptr(batches_.begin()), end(batches_.end());
-        ptr != end; ++ptr)
-    {
-        BuiltMaterial *bm = builtMaterials_[(*ptr).material];
-        if (bm->isTransparent_ == transparent)
-        {
-            Matrix mv(modelview);
-            applyBoneTransform(bones ? bones : &bones_[0], (*ptr).bone, mv);
-            glLoadTransposeMatrixf((float *)mv.rows);
-            builtMaterials_[(*ptr).material]->apply();
-            glDrawRangeElements(GL_TRIANGLES, (*ptr).minVertexIndex, (*ptr).maxVertexIndex, (*ptr).numTriangles * 3, 
-                (indexBits_ == 32) ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT,
-                (void *)((*ptr).firstTriangle * 3 * indexBits_ >> 3));
-    glAssertError();
-        }
-    }
 }
 
 void const *Model::vertices() const

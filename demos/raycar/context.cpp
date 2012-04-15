@@ -176,13 +176,15 @@ glAssertError();
     {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, 0.04f);
+        //glEnable(GL_ALPHA_TEST);
+        //glAlphaFunc(GL_GREATER, 0.04f);
+        glDepthMask(GL_FALSE);
     }
     else
     {
         glDisable(GL_BLEND);
-        glDisable(GL_ALPHA_TEST);
+        //glDisable(GL_ALPHA_TEST);
+        glDepthMask(GL_TRUE);
     }
 }
 
@@ -350,6 +352,7 @@ void GLContext::beginCustom(Matrix const &modelView, int tex)
     glBindTexture(GL_TEXTURE_2D, tex ? tex : defaultCustomMap);
     glMatrixMode(GL_MODELVIEW);
     glLoadTransposeMatrixf((float *)modelView.rows);
+    glDepthMask(GL_TRUE);
 glAssertError();
 }
 
