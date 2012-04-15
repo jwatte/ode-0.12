@@ -7,6 +7,9 @@
 #include "rc_input.h"
 #include "rc_debug.h"
 
+#include <assert.h>
+
+
 class Car;
 
 
@@ -126,6 +129,8 @@ void Car::on_addToScene()
         "wheel_rr",
     };
     int found = 0;
+    float wx[4];
+    float wy[4];
     for (size_t i = 0; i < 4; ++i)
     {
         b = model_->boneNamed(names[i]);
@@ -136,12 +141,16 @@ void Car::on_addToScene()
         get_bone_transform(skel, b-skel, xMat);
         Vec3 wPos(b->lowerBound);
         multiply(xMat, wPos);
+        wx[i] = xMat.translation().x;
+        wy[i] = xMat.translation().y;
         wheelExtent_[i] = wPos.z;  //  wheelExtent -- where bottom surface of wheel is
         wheelNeutral_[i] = wheelExtent_[i]; //  wheelNeutral -- where I want the wheel bottom to be
         multiply(xMat, wPos);
-        wheelCenter_[i] = xMat.translation().z;  //  wheelCenter -- where the center of the wheel is
+        wheelCenter_[i] = xMat.translation();  //  wheelCenter -- where the center of the wheel is
         wheelBone_[i] = b - skel;
     }
+    wheelBase_ = wy[1] - wy[0];
+    wheelWidth_ = wx[0] - wx[2];
 }
 
 void Car::on_removeFromScene()
@@ -202,10 +211,11 @@ void Car::on_step()
     for (size_t i = 0; i < 4; ++i)
     {
         //  todo: apply steering rotation
+        //  todo: apply wheel rotation
         //  wheelNeutral - wheelCenter means bottom of wheel
         //  translation of wheel should be (wheelCenter - (wheelNeutral - wheelExtent))
         //  so if neutral > extent, wheel extends down
-        (*(Matrix *)bones_[wheelBone_[i]].xform).rows[2][3] = wheelCenter_[i] - (wheelNeutral_[i] - wheelExtent_[i]);
+        (*(Matrix *)bones_[wheelBone_[i]].xform).rows[2][3] = wheelCenter_[i].z - (wheelNeutral_[i] - wheelExtent_[i]);
     }
     node_->setBones(&bones_[0], bones_.size());
 
@@ -278,23 +288,51 @@ void Car::on_step()
 void CarBody::onStep()
 {
     Vec3 vel = *(Vec3 const *)dBodyGetLinearVel(car_->body_);
-    //  the model comes out backward, so this is what it is
-    Vec3 fwd = car_->transform().backward();
-    Vec3 up = car_->transform().up();
-    Vec3 right = car_->transform().left();
-    //  Todo: Ackerman steering!
+    //  the model comes out backward, because it's modeled facing the viewer, so this is what it is
+    Matrix cXform(car_->transform());
+    Vec3 fwd = cXform.backward();
+    Vec3 up = cXform.up();
+    Vec3 right = cXform.left();
     float fVel = dot(vel, fwd);
     float steerScale = 1.0f / std::max(1.0f, fabsf(fVel) / car_->speedSteer_);
     //  air drag
     float vee2 = length(vel);
     float vee = sqrtf(vee2);
+    //  for convenience, the linear and vee-squared terms have the same coefficient
     float airDrag = car_->airDrag_;
     dBodyAddForce(car_->body_, -vel.x * (1 + vee) * airDrag, -vel.y * (1 + vee) * airDrag, -vel.z * (1 + vee) * airDrag);
     //  steer based on inputs
     Vec3 steerFwd(right);
-    scale(steerFwd, car_->steer_ * steerScale);
+    float actualSteer = car_->steer_ * steerScale;
+    scale(steerFwd, actualSteer);
     addTo(steerFwd, fwd);
     normalize(steerFwd);
+    //  Ackerman steering!
+    Vec3 steerLeft(steerFwd), steerRight(steerFwd);
+    if (actualSteer > 0.01f) {
+        //  ackerman adjust left
+        float ratio = dot(steerFwd, right);
+        assert(ratio > 0);
+        float alpha = 1.0f / (1 + ratio);
+        scale(steerLeft, alpha);
+        Vec3 fwdBit(fwd);
+        scale(fwdBit, 1-alpha);
+        addTo(steerLeft, fwdBit);
+        normalize(steerLeft);
+    }
+    else if (actualSteer < -0.01f) {
+        //  ackerman right
+        float ratio = -dot(steerFwd, right);
+        assert(ratio > 0);
+        float alpha = 1.0f / (1 + ratio);
+        scale(steerRight, alpha);
+        Vec3 fwdBit(fwd);
+        scale(fwdBit, 1-alpha);
+        addTo(steerRight, fwdBit);
+        normalize(steerRight);
+    }
+    car_->steerLeft_ = steerLeft;
+    car_->steerRight_ = steerRight;
     float gasForce = car_->gas_ * car_->enginePower_;
     if (fVel > car_->topSpeed_ * 0.5f) {
         gasForce = gasForce * car_->topSpeed_ * 0.5f / fVel;
@@ -305,8 +343,7 @@ void CarBody::onStep()
     for (size_t i = 0; i != 4; ++i)
     {
         //  for each wheel, set a ray to the center of the wheel bone position
-        Vec3 pos = (*(Matrix const *)car_->bones_[car_->wheelBone_[i]].xform).translation();
-        pos.z = car_->wheelCenter_[i];
+        Vec3 pos = car_->wheelCenter_[i];
         multiply(car_->transform(), pos);
         rayOrigin_ = pos;
         // from the center of the wheel bone, in the "down" direction of the car
@@ -314,7 +351,7 @@ void CarBody::onStep()
         // I want the closest collision for trimesh/ray intersections
         dGeomRaySetClosestHit(car_->wheelRay_, 1);
         //  max extent is one full wheel radius down -- neutral is one wheel radius already, so 2 for max
-        float maxExtent = fabs(car_->wheelNeutral_[i] - car_->wheelCenter_[i]) * 2;
+        float maxExtent = fabs(car_->wheelNeutral_[i] - car_->wheelCenter_[i].z) * 2;
         // wheel can move at most half a wheel radius, plus the distance from center to radius at rest
         dGeomRaySetLength(car_->wheelRay_, maxExtent);
         dGeomRaySetParams(car_->wheelRay_, 0, 0);   // firstContact, backfaceCull
@@ -329,7 +366,7 @@ void CarBody::onStep()
             nearest_.depth = maxExtent;
         }
         //  extend the wheel bottoms to the point of contact
-        car_->wheelExtent_[i] = car_->wheelCenter_[i] - nearest_.depth;
+        car_->wheelExtent_[i] = car_->wheelCenter_[i].z - nearest_.depth;
         if (nearest_.depth < maxExtent) // not <=, because == means "no contact"
         {
             //  got a contact
@@ -344,7 +381,7 @@ void CarBody::onStep()
             Vec3 cpos2;
             subFrom(cpos2, cdir);
             bool contact = false;
-            if (c.geom.depth > 0) {
+            if (c.geom.depth > -0.05f) {    //  some "skin depth" to keep contact with road when suspension extended a little bit
                 //  I can bump if there's been a contact since the last bump
                 car_->canBump_ = true;
                 contact = true;
@@ -355,8 +392,11 @@ void CarBody::onStep()
                 c.geom.normal[2] *= -1;
                 //  figure out which direction the wheels turn
                 //  frontleft and frontright are steering wheels
-                if (i == 0 || i == 2) {
-                    memcpy(c.fdir1, &steerFwd, sizeof(steerFwd));
+                if (i == 2) {
+                    memcpy(c.fdir1, &steerRight, sizeof(steerRight));
+                }
+                else if (i == 0) {
+                    memcpy(c.fdir1, &steerLeft, sizeof(steerLeft));
                 }
                 else {
                     //  driving wheels

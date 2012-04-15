@@ -54,12 +54,16 @@ private:
     float enginePower_;     //  how fast it can accelerate
     float airDrag_;         //  how much air drag by velocity squared
     float speedSteer_;      //  how much to allow steering at speed
+    float wheelBase_;       //  distance from front to back axle
+    float wheelWidth_;      //  distance from left to right front wheel
     float wheelTurn_[4];    //  how much the wheel has turned
     float wheelExtent_[4];  //  bottom edge of wheel in Z
     float wheelNeutral_[4]; //  bottom edge of wheel in Z when at rest
     unsigned int wheelBone_[4]; //  Bones indices used for rendering; maps to well-known order
     std::vector<Bone> bones_;   //  Bone data used for rendering
-    float wheelCenter_[4];  //  the Z value of each wheel bone when in neutral position. Also, wheelNeutral - wheelCenter == wheel radius
+    Vec3 wheelCenter_[4];   //  the car-local position of each wheel bone when in neutral position. Also, wheelNeutral - wheelCenter.z == wheel radius
+    Vec3 steerLeft_;
+    Vec3 steerRight_;
 };
 
 #endif
