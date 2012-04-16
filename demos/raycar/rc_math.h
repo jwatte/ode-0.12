@@ -95,6 +95,8 @@ float dot(Vec3 const &a, Vec3 const &b);
 float length(Vec3 const &l);
 float lengthSquared(Vec3 const &l);
 bool equals(Vec3 const &left, Vec3 const &right);
+float distance(Vec3 const &a, Vec3 const &b);
+float distanceSquared(Vec3 const &a, Vec3 const &b);
 
 void multiply(Matrix const &left, Matrix const &right, Matrix &result);
 void multiply(Matrix const &left, Vec3 &right);

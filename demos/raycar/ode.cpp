@@ -40,7 +40,7 @@ void physicsCreate()
     }
     gWorld = dWorldCreate();
     dWorldSetGravity(gWorld, 0, 0, -9.8f);
-    dWorldSetDamping(gWorld, 0.001f, 0.005f);
+    dWorldSetDamping(gWorld, 0.0015f, 0.006f);
     gJointGroup = dJointGroupCreate(0);
     gDynamicSpace = dHashSpaceCreate(0);
     dHashSpaceSetLevels(gDynamicSpace, 2, 5);

@@ -106,6 +106,16 @@ float lengthSquared(Vec3 const &l)
     return dot(l, l);
 }
 
+float distance(Vec3 const &a, Vec3 const &b)
+{
+    return sqrtf(distanceSquared(a, b));
+}
+
+float distanceSquared(Vec3 const &a, Vec3 const &b)
+{
+    return (a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z);
+}
+
 bool equals(Vec3 const &left, Vec3 const &right)
 {
     return left.x == right.x && left.y == right.y && left.z == right.z;

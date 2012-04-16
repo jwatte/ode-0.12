@@ -22,8 +22,8 @@ public:
         //  This will roll forever, very slowly, unless I up the tolerance for sleep.
         //  Compare to a box, which will come to a complete stop easily, and where we 
         //  don't want it stopping balancing on an edge.
-        dBodySetAutoDisableAngularThreshold(id_, 0.02f);
-        dBodySetAutoDisableLinearThreshold(id_, 0.02f);
+        dBodySetAutoDisableAngularThreshold(id_, 0.03f);
+        dBodySetAutoDisableLinearThreshold(id_, 0.03f);
         dBodySetAutoDisableAverageSamplesCount(id_, 5);
     }
     Barrel *b_;

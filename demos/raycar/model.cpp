@@ -257,6 +257,7 @@ void Model::buildMaterials()
     {
         builtMaterials_.push_back(ctx_->buildMaterial(*ptr));
     }
+    calcExtents();
 }
 
 bool Model::hasTransparency() const
@@ -281,6 +282,43 @@ void Model::releaseMaterials()
     {
         (*ptr)->release();
     }
+}
+
+void Model::calcExtents()
+{
+    extents_.resize(batches_.size());
+    for (std::vector<TriangleBatch>::iterator
+        ptr(batches_.begin()),
+        end(batches_.end());
+        ptr != end;
+        ++ptr)
+    {
+        calcBatchExtent(*ptr, extents_[ptr - batches_.begin()]);
+    }
+}
+
+void Model::calcBatchExtent(TriangleBatch const &tb, std::pair<Vec3, float> &ex)
+{
+    char const *vp = &vertexData_[0];
+    Vec3 pt(*(Vec3 const *)(vp + vertexBytes_ * tb.minVertexIndex));
+    int n = 1;
+    for (size_t i = tb.minVertexIndex; i != tb.maxVertexIndex; ++i)
+    {
+        addTo(pt, *(Vec3 const *)(vp + vertexBytes_ * (i + 1)));
+        n += 1;
+    }
+    scale(pt, 1.0f / n);
+    float f = distanceSquared(pt, *(Vec3 const *)(vp + vertexBytes_ * tb.minVertexIndex));
+    for (size_t i = tb.minVertexIndex; i != tb.maxVertexIndex; ++i)
+    {
+        float g = distanceSquared(pt, *(Vec3 const *)(vp + vertexBytes_ * (i + 1)));
+        if (g > f)
+        {
+            f = g;
+        }
+    }
+    ex.first = pt;
+    ex.second = sqrtf(f);
 }
 
 void Model::bind()

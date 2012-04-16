@@ -134,6 +134,7 @@ public:
     Bone const *boneNamed(std::string const &name);
     void bind();
     void issueBatch(Matrix const &modelview, size_t ix, Bone const *bones);
+    void batchExtent(size_t ix, Vec3 &oCenter, float &oRadius);
 
     void const *vertices() const;
     size_t vertexSize() const;
@@ -149,6 +150,8 @@ private:
     Model(GLContext *ctx);
     void releaseMaterials();
     void applyBoneTransform(Bone const *bones, size_t bix, Matrix &m) const;
+    void calcExtents();
+    void calcBatchExtent(TriangleBatch const &tb, std::pair<Vec3, float> &ex);
 
     GLContext *ctx_;
     uint32_t vertices_;
@@ -165,6 +168,7 @@ private:
     std::vector<BuiltMaterial *> builtMaterials_;
     std::vector<Material> materials_;
     std::vector<Bone> bones_;
+    std::vector<std::pair<Vec3, float> > extents_;
 };
 
 class ModelWriter : public IModelData
